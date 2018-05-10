@@ -9,6 +9,7 @@
 #include <mosquittopp.h>
 #include <iostream>
 #include <string>
+#include <string.h>
 #include <assert.h>
 
 #include "scssdk_telemetry.h"

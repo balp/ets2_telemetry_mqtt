@@ -1,1 +1,4 @@
+*~
+*.swp
+build/*
 build_ubuntu_clang/*

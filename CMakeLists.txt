@@ -52,3 +52,17 @@ include_directories(
 add_library(ets2telemery MODULE src/mqttClient.cxx)
 add_dependencies(ets2telemery scs_sdk)
 target_link_libraries(ets2telemery ${MOSQUITTOPP_LIBRARY})
+
+find_package(Doxygen
+             REQUIRED dot
+             OPTIONAL_COMPONENTS mscgen dia)
+
+doxygen_add_docs(
+    doxygen
+    ${PROJECT_SOURCE_DIR} ${EXTERNAL_SCS_SDK_INSTALL_LOCATION}/src/scs_sdk
+    "Build Documentation"
+)
+add_dependencies(doxygen scs_sdk)
+
+add_custom_target(doc ALL
+	DEPENDS doxygen)
