@@ -36,21 +36,34 @@ if(NOT ${MOSQITTO_FOUND})
     add_dependencies(mqttClient mosquitto)
 endif()
 
-set(EXTERNAL_SCS_SDK_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external/scs_sdk)
 ExternalProject_Add(scs_sdk
     URL http://download.eurotrucksimulator2.com/scs_sdk_1_9.zip
-    PREFIX ${EXTERNAL_SCS_SDK_INSTALL_LOCATION}
+    PREFIX ${CMAKE_BINARY_DIR}/external/scs_sdk
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
     LOG_DOWNLOAD ON
     )
 include_directories(
-    ${EXTERNAL_SCS_SDK_INSTALL_LOCATION}/src/scs_sdk/include/
+    ${CMAKE_BINARY_DIR}/external/scs_sdk/src/scs_sdk/include/
 )
 
-add_library(ets2telemery MODULE src/mqttClient.cxx)
-add_dependencies(ets2telemery scs_sdk)
+ExternalProject_Add(json
+    PREFIX ${CMAKE_BINARY_DIR}/external/json
+    URL https://github.com/nlohmann/json/releases/download/v3.4.0/json.hpp
+    DOWNLOAD_NO_EXTRACT 1
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+include_directories(${CMAKE_BINARY_DIR}/external/json/src)
+
+add_library(ets2telemery MODULE
+	src/mqttClient.hpp
+	src/mqttClient.cxx
+	src/ets2client.cxx
+)
+add_dependencies(ets2telemery scs_sdk json)
 target_link_libraries(ets2telemery ${MOSQUITTOPP_LIBRARY})
 
 find_package(Doxygen

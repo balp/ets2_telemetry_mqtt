@@ -33,14 +33,28 @@ struct telemetry_state_t
     scs_timestamp_t raw_simulation_timestamp;
     scs_timestamp_t raw_paused_simulation_timestamp;
 
-    bool	orientation_available;
-    float	heading;
-    float	pitch;
-    float	roll;
+    struct common {
+        uint32_t game_time;
+        float local_scale;
+        int32_t rest_stop;
+    } common;
 
-    float	speed;
-    float	rpm;
-    int	gear;
+    struct truck {
+        scs_value_dplacement_t world_placement;
+        scs_value_fvector_t local_linear_velocity;
+        scs_value_fvector_t local_angular_velocity;
+        scs_value_fvector_t local_linear_acceleration;
+        scs_value_fvector_t local_angular_acceleration;
+        scs_value_fplacement_t cabin_offset;
+        scs_value_fvector_t cabin_angular_velocity;
+        scs_value_fvector_t cabin_angular_acceleration;
+        scs_value_fplacement_t head_offset;
+        float speed;
+        float engine_rpm;
+        int32_t engine_gear;
+        int32_t displayed_gear;
+    } truck;
+
 
 } telemetry;
 
@@ -79,33 +93,39 @@ SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
     if (mqttHdl == NULL) {
         return;
     }
-    const size_t buffer_size = 150;
-    char buffer[buffer_size] = {0};
-    snprintf(buffer, buffer_size,
-            "%" SCS_PF_U64 ";%" SCS_PF_U64 ";%" SCS_PF_U64 ";%" SCS_PF_U64 ";%f;%f;%f;%f;%f;%d",
-            telemetry.timestamp,
-            telemetry.raw_rendering_timestamp,
-            telemetry.raw_simulation_timestamp,
-            telemetry.raw_paused_simulation_timestamp,
-            telemetry.heading,
-            telemetry.pitch,
-            telemetry.roll,
-            telemetry.speed,
-            telemetry.rpm,
-            telemetry.gear
-            );
-    auto res = mqttHdl->publish(NULL, "ets2/data", buffer_size, buffer);
     nlohmann::json j;
     j["timestamp"] = telemetry.timestamp;
     j["raw_rendering_timestamp"] = telemetry.raw_rendering_timestamp;
     j["raw_simulation_timestamp"] = telemetry.raw_simulation_timestamp;
     j["raw_paused_simulation_timestamp"] = telemetry.raw_paused_simulation_timestamp;
-    j["truck"]["world_placement"]["heading"] = telemetry.heading;
-    j["truck"]["world_placement"]["pitch"] = telemetry.pitch;
-    j["truck"]["world_placement"]["roll"] = telemetry.roll;
-    j["truck"]["speed"] = telemetry.speed;
-    j["truck"]["rpm"] = telemetry.rpm;
-    j["truck"]["gear"] = telemetry.gear;
+    j["truck"]["world_placement"]["position"]["x"] = telemetry.truck.world_placement.position.x;
+    j["truck"]["world_placement"]["position"]["y"] = telemetry.truck.world_placement.position.y;
+    j["truck"]["world_placement"]["position"]["z"] = telemetry.truck.world_placement.position.z;
+    j["truck"]["world_placement"]["orientation"]["heading"] = telemetry.truck.world_placement.orientation.heading;
+    j["truck"]["world_placement"]["orientation"]["pitch"] = telemetry.truck.world_placement.orientation.pitch;
+    j["truck"]["world_placement"]["orientation"]["roll"] = telemetry.truck.world_placement.orientation.roll;
+    j["truck"]["local_linear_velocity"]["x"] = telemetry.truck.local_linear_velocity.x;
+    j["truck"]["local_linear_velocity"]["y"] = telemetry.truck.local_linear_velocity.y;
+    j["truck"]["local_linear_velocity"]["z"] = telemetry.truck.local_linear_velocity.z;
+    j["truck"]["local_angular_velocity"]["x"] = telemetry.truck.local_angular_velocity.x;
+    j["truck"]["local_angular_velocity"]["y"] = telemetry.truck.local_angular_velocity.y;
+    j["truck"]["local_angular_velocity"]["z"] = telemetry.truck.local_angular_velocity.z;
+    j["truck"]["local_linear_acceleration"]["x"] = telemetry.truck.local_linear_acceleration.x;
+    j["truck"]["local_linear_acceleration"]["y"] = telemetry.truck.local_linear_acceleration.y;
+    j["truck"]["local_linear_acceleration"]["z"] = telemetry.truck.local_linear_acceleration.z;
+    j["truck"]["local_angular_acceleration"]["x"] = telemetry.truck.local_angular_acceleration.x;
+    j["truck"]["local_angular_acceleration"]["y"] = telemetry.truck.local_angular_acceleration.y;
+    j["truck"]["local_angular_acceleration"]["z"] = telemetry.truck.local_angular_acceleration.z;
+    j["truck"]["cabin_offset"]["position"]["x"] = telemetry.truck.cabin_offset.position.x;
+    j["truck"]["cabin_offset"]["position"]["y"] = telemetry.truck.cabin_offset.position.y;
+    j["truck"]["cabin_offset"]["position"]["z"] = telemetry.truck.cabin_offset.position.z;
+    j["truck"]["cabin_offset"]["orientation"]["heading"] = telemetry.truck.cabin_offset.orientation.heading;
+    j["truck"]["cabin_offset"]["orientation"]["pitch"] = telemetry.truck.cabin_offset.orientation.pitch;
+    j["truck"]["cabin_offset"]["orientation"]["roll"] = telemetry.truck.cabin_offset.orientation.roll;
+    j["truck"]["speed"] = telemetry.truck.speed;
+    j["truck"]["engine_rpm"] = telemetry.truck.engine_rpm;
+    j["truck"]["engine_gear"] = telemetry.truck.engine_gear;
+    j["truck"]["displayed_gear"] = telemetry.truck.displayed_gear;
     std::string json_string = j.dump();
     mqttHdl->publish(NULL, "ets2/data", strlen(json_string.c_str()), json_string.c_str());
 }
@@ -133,7 +153,7 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
         const scs_context_t UNUSED(context))
 {
     const struct scs_telemetry_configuration_t *const info = static_cast<const scs_telemetry_configuration_t *>(event_info);
-    nlohmann::json j;
+    nlohmann::json j = nlohmann::json::object();
     for (const scs_named_value_t *current = info->attributes; current->name; ++current) {
         switch (current->value.type) {
             case SCS_VALUE_TYPE_INVALID:
@@ -202,6 +222,7 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
 
 }
 
+#if 0
 SCSAPI_VOID telemetry_store_euler(const scs_string_t name,
         const scs_u32_t index,
         const scs_value_t *const value,
@@ -220,6 +241,20 @@ SCSAPI_VOID telemetry_store_euler(const scs_string_t name,
     state->pitch = value->value_euler.pitch * 360.0f;
     state->roll = value->value_euler.roll * 360.0f;
 }
+#endif
+
+SCSAPI_VOID telemetry_store_dplacement(const scs_string_t name,
+    const scs_u32_t index,
+    const scs_value_t *const value, 
+    const scs_context_t context)
+{
+	assert(context);
+	assert(value);
+	assert(value->type == SCS_VALUE_TYPE_dplacement);
+	scs_value_dplacement_t *const placement = static_cast<scs_value_dplacement_t *>(context);
+	*placement = value->value_dplacement;
+}
+
 
 SCSAPI_VOID telemetry_store_float(const scs_string_t name,
         const scs_u32_t index,
@@ -240,8 +275,51 @@ SCSAPI_VOID telemetry_store_s32(const scs_string_t name,
     assert(value);
     assert(value->type == SCS_VALUE_TYPE_s32);
     assert(context);
-    *static_cast<int *>(context) = value->value_s32.value;
+    *static_cast<int32_t *>(context) = value->value_s32.value;
 }
+
+SCSAPI_VOID telemetry_store_u32(const scs_string_t name,
+        const scs_u32_t index,
+        const scs_value_t *const value,
+        const scs_context_t context)
+{
+    assert(value);
+    assert(value->type == SCS_VALUE_TYPE_u32);
+    assert(context);
+    *static_cast<uint32_t *>(context) = value->value_u32.value;
+}
+
+SCSAPI_VOID telemetry_store_fplacement(const scs_string_t name, const scs_u32_t index, const scs_value_t *const value, const scs_context_t context)
+{
+	assert(context);
+	assert(value);
+	assert(value->type == SCS_VALUE_TYPE_fplacement);
+	scs_value_fplacement_t *const placement = static_cast<scs_value_fplacement_t *>(context);
+	*placement = value->value_fplacement;
+}
+
+/**
+ * @brief Vector storage callback.
+ *
+ * Can be used together with SCS_TELEMETRY_CHANNEL_FLAG_no_value in which case it
+ * will store zero if the value is not available.
+ */
+SCSAPI_VOID telemetry_store_fvector(const scs_string_t name, const scs_u32_t index, const scs_value_t *const value, const scs_context_t context)
+{
+	assert(context);
+	scs_value_fvector_t *const storage = static_cast<scs_value_fvector_t *>(context);
+
+	if (value) {
+		assert(value->type == SCS_VALUE_TYPE_fvector);
+		*storage = value->value_fvector;
+	}
+	else {
+		storage->x = 0.0f;
+		storage->y = 0.0f;
+		storage->z = 0.0f;
+	}
+}
+
 
 SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
         const scs_telemetry_init_params_t *const params)
@@ -273,29 +351,117 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
     version_params->register_for_event(SCS_TELEMETRY_EVENT_configuration,
             telemetry_configuration, NULL);
 
+    version_params->register_for_channel(SCS_TELEMETRY_CHANNEL_game_time,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_u32,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_u32, 
+            &telemetry.common.game_time);
+
+    version_params->register_for_channel(SCS_TELEMETRY_CHANNEL_local_scale,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_float,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_float, 
+            &telemetry.common.local_scale);
+
+    version_params->register_for_channel(SCS_TELEMETRY_CHANNEL_next_rest_stop,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_s32,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_s32, 
+            &telemetry.common.rest_stop);
+
     version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_world_placement,
             SCS_U32_NIL,
-            SCS_VALUE_TYPE_euler,
+            SCS_VALUE_TYPE_dplacement,
             SCS_TELEMETRY_CHANNEL_FLAG_no_value,
-            telemetry_store_euler, &telemetry);
+            telemetry_store_dplacement, 
+            &telemetry.truck.world_placement);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_local_linear_velocity,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fvector,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fvector, 
+            &telemetry.truck.local_linear_velocity);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_local_angular_velocity,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fvector,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fvector, 
+            &telemetry.truck.local_angular_velocity);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_local_linear_acceleration,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fvector,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fvector, 
+            &telemetry.truck.local_linear_acceleration);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_local_angular_acceleration,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fvector,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fvector, 
+            &telemetry.truck.local_angular_acceleration);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_offset,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fplacement,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fplacement, 
+            &telemetry.truck.cabin_offset);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_angular_velocity,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fvector,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fvector, 
+            &telemetry.truck.cabin_angular_velocity);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_angular_acceleration,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fvector,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fvector, 
+            &telemetry.truck.cabin_angular_acceleration);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_head_offset,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_fplacement,
+            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
+            telemetry_store_fplacement, 
+            &telemetry.truck.head_offset);
+
     version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_speed,
             SCS_U32_NIL,
             SCS_VALUE_TYPE_float,
             SCS_TELEMETRY_CHANNEL_FLAG_none,
             telemetry_store_float,
-            &telemetry.speed);
+            &telemetry.truck.speed);
+
     version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_rpm,
             SCS_U32_NIL,
             SCS_VALUE_TYPE_float,
             SCS_TELEMETRY_CHANNEL_FLAG_none,
             telemetry_store_float,
-            &telemetry.rpm);
+            &telemetry.truck.engine_rpm);
+
     version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_engine_gear,
             SCS_U32_NIL,
             SCS_VALUE_TYPE_s32,
             SCS_TELEMETRY_CHANNEL_FLAG_none,
             telemetry_store_s32,
-            &telemetry.gear);
+            &telemetry.truck.engine_gear);
+
+    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_displayed_gear,
+            SCS_U32_NIL,
+            SCS_VALUE_TYPE_s32,
+            SCS_TELEMETRY_CHANNEL_FLAG_none,
+            telemetry_store_s32,
+            &telemetry.truck.displayed_gear);
 
     game_log = version_params->common.log;
     game_log(SCS_LOG_TYPE_message, "Initializing telemetry mqtt gateway");
