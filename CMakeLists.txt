@@ -21,6 +21,16 @@ else()
     message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no official C++11 support.")
 endif()
 
+ExternalProject_Add(catch2
+        PREFIX ${CMAKE_BINARY_DIR}/catch2
+        URL https://raw.githubusercontent.com/catchorg/Catch2/master/single_include/catch2/catch.hpp
+        DOWNLOAD_NO_EXTRACT 1
+        CONFIGURE_COMMAND ""
+        BUILD_COMMAND ""
+        INSTALL_COMMAND ""
+)
+include_directories(${CMAKE_BINARY_DIR}/catch2/src)
+
 
 find_package(Mosquitto)
 if(NOT ${MOSQITTO_FOUND})
@@ -63,8 +73,33 @@ add_library(ets2telemery MODULE
 	src/mqttClient.cxx
 	src/ets2client.cxx
 )
+
 add_dependencies(ets2telemery scs_sdk json)
-target_link_libraries(ets2telemery ${MOSQUITTOPP_LIBRARY})
+target_link_libraries(ets2telemery 
+    PUBLIC ${MOSQUITTOPP_LIBRARY})
+
+
+
+add_executable(ets2clienttest
+    src/mqttClient.hpp
+    src/mqttClient.cxx
+    src/ets2client.cxx
+
+    test/ets2clienttest.cxx
+)
+target_link_libraries(ets2clienttest 
+    PUBLIC ${MOSQUITTOPP_LIBRARY}
+)
+set_property(TARGET ets2clienttest PROPERTY CXX_STANDARD 14)
+target_include_directories(ets2clienttest
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+add_dependencies(ets2clienttest catch2)
+add_test(NAME ets2client
+      COMMAND ets2clienttest
+)
+
+
 
 find_package(Doxygen
              REQUIRED dot
