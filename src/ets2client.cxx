@@ -39,6 +39,7 @@ struct telemetry_state_t
     scs_timestamp_t raw_paused_simulation_timestamp;
     std::vector<std::shared_ptr<ITelematic>> _common;
     std::vector<std::shared_ptr<ITelematic>> _truck;
+    std::vector<std::shared_ptr<ITelematic>> _trailer;
     telemetry_state_t() : timestamp(0),
                           raw_rendering_timestamp(0),
                           raw_simulation_timestamp(0),
@@ -138,7 +139,25 @@ struct telemetry_state_t
                                   // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_rotation
                                   // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift
                                   // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift_offset
-                                  })
+                                  }),
+                            _trailer({
+                                std::make_shared<TelematicBool>(SCS_TELEMETRY_TRAILER_CHANNEL_connected),
+                                // Movement.
+                                std::make_shared<TelematicDPlacement>(SCS_TELEMETRY_TRAILER_CHANNEL_world_placement),
+                                std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRAILER_CHANNEL_local_linear_velocity),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRAILER_CHANNEL_local_angular_velocity),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRAILER_CHANNEL_local_linear_acceleration),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRAILER_CHANNEL_local_angular_acceleration),
+                                  // Waer info
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wear_chassis),
+                                    // Wheels
+                                  // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_susp_deflection
+                                  // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_on_ground
+                                  // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_substance
+                                  // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_velocity
+                                  // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_steering
+                                  // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_rotation
+                            })
     {
     }
 #if 0
@@ -203,7 +222,11 @@ SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
     {
         j["truck"].push_back(channel->getJson());
     }
-
+    for (auto channel : telemetry._trailer)
+    {
+        j["trailer"].push_back(channel->getJson());
+    }
+    
     std::string json_string = j.dump();
     mqttHdl->publish(NULL, "ets2/data", strlen(json_string.c_str()), json_string.c_str());
 }
@@ -346,22 +369,10 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
     {
         channel->register_for_channel(version_params);
     }
-
-#if 0
-    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_hshifter_slot,
-            SCS_U32_NIL,
-            SCS_VALUE_TYPE_u32,
-            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
-            telemetry_store_u32, 
-            &telemetry.truck.hshifter_slot);
-
-    version_params->register_for_channel(SCS_TELEMETRY_TRUCK_CHANNEL_hshifter_selector,
-            SCS_U32_NIL,
-            SCS_VALUE_TYPE_u32,
-            SCS_TELEMETRY_CHANNEL_FLAG_no_value,
-            telemetry_store_u32, 
-            &telemetry.common.hshifter_selector);
-#endif
+    for (auto channel : telemetry._trailer)
+    {
+        channel->register_for_channel(version_params);
+    }
 
     game_log = version_params->common.log;
     game_log(SCS_LOG_TYPE_message, "Initializing telemetry mqtt gateway");
