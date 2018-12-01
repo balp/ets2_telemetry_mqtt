@@ -134,4 +134,83 @@ class TelematicFloat : public ITelematic
     }
 };
 
+class TelematicDPlacement : public ITelematic
+{
+    scs_value_dplacement_t _value;
+
+  public:
+    TelematicDPlacement(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_dplacement),
+                                                   _value({{0}, {0}, 0}) {}
+
+    void setValue(const scs_value_t *const value) override
+    {
+        assert(value->type == SCS_VALUE_TYPE_dplacement);
+        _value = value->value_dplacement;
+    }
+
+    nlohmann::json getJson() override
+    {
+        nlohmann::json j;
+        j[_name]["position"]["x"] = _value.position.x;
+        j[_name]["position"]["y"] = _value.position.y;
+        j[_name]["position"]["z"] = _value.position.z;
+        j[_name]["orientation"]["heading"] = _value.orientation.heading;
+        j[_name]["orientation"]["pitch"] = _value.orientation.pitch;
+        j[_name]["orientation"]["roll"] = _value.orientation.roll;
+        return j;
+    }
+};
+
+class TelematicFPlacement : public ITelematic
+{
+    scs_value_fplacement_t _value;
+
+  public:
+    TelematicFPlacement(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_fplacement),
+                                                   _value({{0}, {0}}) {}
+
+    void setValue(const scs_value_t *const value) override
+    {
+        assert(value->type == SCS_VALUE_TYPE_fplacement);
+        _value = value->value_fplacement;
+    }
+
+    nlohmann::json getJson() override
+    {
+        nlohmann::json j;
+        j[_name]["position"]["x"] = _value.position.x;
+        j[_name]["position"]["y"] = _value.position.y;
+        j[_name]["position"]["z"] = _value.position.z;
+        j[_name]["orientation"]["heading"] = _value.orientation.heading;
+        j[_name]["orientation"]["pitch"] = _value.orientation.pitch;
+        j[_name]["orientation"]["roll"] = _value.orientation.roll;
+        return j;
+    }
+};
+
+
+class TelematicFVector : public ITelematic
+{
+    scs_value_fvector_t _value;
+
+  public:
+    TelematicFVector(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_fvector),
+                                                _value({0}) {}
+
+    void setValue(const scs_value_t *const value) override
+    {
+        assert(value->type == SCS_VALUE_TYPE_fvector);
+        _value = value->value_fvector;
+    }
+
+    nlohmann::json getJson() override
+    {
+        nlohmann::json j;
+        j[_name]["x"] = _value.x;
+        j[_name]["y"] = _value.y;
+        j[_name]["z"] = _value.z;
+        return j;
+    }
+};
+
 #endif // TELEMATIC_H

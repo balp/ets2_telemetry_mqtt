@@ -119,3 +119,177 @@ TEST_CASE("TelematicInt32 life cycle", "[TelematicInt32]")
         REQUIRE(tmp["test"] == 12345);
     }
 }
+
+
+TEST_CASE("TelematicFloat life cycle", "[TelematicFloat]")
+{
+    TelemetryInitMock _telemetryInitMock;
+    telemetryInitMock = &_telemetryInitMock;
+    std::shared_ptr<ITelematic> telematic = std::make_shared<TelematicFloat>("test");
+    scs_telemetry_init_params_v100_t params;
+    params.register_for_channel = test;
+
+    SECTION("Register for right channel")
+    {
+        EXPECT_CALL(_telemetryInitMock,
+                    register_for_event("test", _, SCS_VALUE_TYPE_float, _, _, _))
+            .WillOnce(Return(SCS_RESULT_ok));
+
+        auto res = telematic->register_for_channel(&params);
+        REQUIRE(res == SCS_RESULT_ok);
+    }
+
+    SECTION("Handle value callback")
+    {
+        scs_value_t value;
+        value.type = SCS_VALUE_TYPE_float;
+        value.value_float.value = 12345.0f;
+        ITelematic::value_callback("test",
+                                   0,
+                                   &value,
+                                   static_cast<scs_context_t>(telematic.get()));
+        auto tmp = telematic->getJson();
+        REQUIRE(tmp["test"] == 12345.0f);
+    }
+}
+
+TEST_CASE("TelematicDPlacement life cycle", "[TelematicDPlacement]")
+{
+    TelemetryInitMock _telemetryInitMock;
+    telemetryInitMock = &_telemetryInitMock;
+    std::shared_ptr<ITelematic> telematic = std::make_shared<TelematicDPlacement>("test");
+    scs_telemetry_init_params_v100_t params;
+    params.register_for_channel = test;
+
+    SECTION("Register for right channel")
+    {
+        EXPECT_CALL(_telemetryInitMock,
+                    register_for_event("test", _, SCS_VALUE_TYPE_dplacement, _, _, _))
+            .WillOnce(Return(SCS_RESULT_ok));
+
+        auto res = telematic->register_for_channel(&params);
+        REQUIRE(res == SCS_RESULT_ok);
+    }
+
+    SECTION("Handle value callback")
+    {
+        scs_value_t value;
+        value.type = SCS_VALUE_TYPE_dplacement;
+        value.value_dplacement.position.x = 1.0;
+        value.value_dplacement.position.y = 2.0;
+        value.value_dplacement.position.z = 3.0;
+        value.value_dplacement.orientation.heading = 3.0;
+        value.value_dplacement.orientation.pitch = 4.0;
+        value.value_dplacement.orientation.roll = 5.0;
+        ITelematic::value_callback("test",
+                                   0,
+                                   &value,
+                                   static_cast<scs_context_t>(telematic.get()));
+        auto tmp = telematic->getJson();
+        nlohmann::json expected =
+        {
+            {"position", {
+                {"x", 1.0}, 
+                {"y", 2.0},
+                {"z", 3.0}
+            }},
+            {"orientation", {
+                {"heading", 3.0},
+                {"pitch", 4.0},
+                {"roll", 5.0}
+            }}
+        };
+        REQUIRE(tmp["test"] == expected);
+    }
+}
+
+TEST_CASE("TelematicFPlacement life cycle", "[TelematicFPlacement]")
+{
+    TelemetryInitMock _telemetryInitMock;
+    telemetryInitMock = &_telemetryInitMock;
+    std::shared_ptr<ITelematic> telematic = std::make_shared<TelematicFPlacement>("test");
+    scs_telemetry_init_params_v100_t params;
+    params.register_for_channel = test;
+
+    SECTION("Register for right channel")
+    {
+        EXPECT_CALL(_telemetryInitMock,
+                    register_for_event("test", _, SCS_VALUE_TYPE_fplacement, _, _, _))
+            .WillOnce(Return(SCS_RESULT_ok));
+
+        auto res = telematic->register_for_channel(&params);
+        REQUIRE(res == SCS_RESULT_ok);
+    }
+
+    SECTION("Handle value callback")
+    {
+        scs_value_t value;
+        value.type = SCS_VALUE_TYPE_fplacement;
+        value.value_fplacement.position.x = 1.0;
+        value.value_fplacement.position.y = 2.0;
+        value.value_fplacement.position.z = 3.0;
+        value.value_fplacement.orientation.heading = 3.0;
+        value.value_fplacement.orientation.pitch = 4.0;
+        value.value_fplacement.orientation.roll = 5.0;
+        ITelematic::value_callback("test",
+                                   0,
+                                   &value,
+                                   static_cast<scs_context_t>(telematic.get()));
+        auto tmp = telematic->getJson();
+        nlohmann::json expected =
+        {
+            {"position", {
+                {"x", 1.0}, 
+                {"y", 2.0},
+                {"z", 3.0}
+            }},
+            {"orientation", {
+                {"heading", 3.0},
+                {"pitch", 4.0},
+                {"roll", 5.0}
+            }}
+        };
+        REQUIRE(tmp["test"] == expected);
+    }
+}
+
+
+TEST_CASE("TelematicFVector life cycle", "[TelematicFVector]")
+{
+    TelemetryInitMock _telemetryInitMock;
+    telemetryInitMock = &_telemetryInitMock;
+    std::shared_ptr<ITelematic> telematic = std::make_shared<TelematicFVector>("test");
+    scs_telemetry_init_params_v100_t params;
+    params.register_for_channel = test;
+
+    SECTION("Register for right channel")
+    {
+        EXPECT_CALL(_telemetryInitMock,
+                    register_for_event("test", _, SCS_VALUE_TYPE_fvector, _, _, _))
+            .WillOnce(Return(SCS_RESULT_ok));
+
+        auto res = telematic->register_for_channel(&params);
+        REQUIRE(res == SCS_RESULT_ok);
+    }
+
+    SECTION("Handle value callback")
+    {
+        scs_value_t value;
+        value.type = SCS_VALUE_TYPE_fvector;
+        value.value_fvector.x = 1.0;
+        value.value_fvector.y = 2.0;
+        value.value_fvector.z = 3.0;
+        ITelematic::value_callback("test",
+                                   0,
+                                   &value,
+                                   static_cast<scs_context_t>(telematic.get()));
+        auto tmp = telematic->getJson();
+        nlohmann::json expected =
+        {
+            {"x", 1.0}, 
+            {"y", 2.0},
+            {"z", 3.0}
+        };
+        REQUIRE(tmp["test"] == expected);
+    }
+}
