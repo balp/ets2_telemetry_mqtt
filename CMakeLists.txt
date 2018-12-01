@@ -4,22 +4,42 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModu
 enable_testing()
 include(ExternalProject)
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++17" COMPILER_SUPPORTS_CXX17)
-CHECK_CXX_COMPILER_FLAG("-std=c++14" COMPILER_SUPPORTS_CXX14)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
-if(COMPILER_SUPPORTS_CXX17)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
-elseif(COMPILER_SUPPORTS_CXX14)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
-elseif(COMPILER_SUPPORTS_CXX11)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-elseif(COMPILER_SUPPORTS_CXX0X)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-else()
-    message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no official C++11 support.")
+configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+  RESULT_VARIABLE result
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+if(result)
+  message(FATAL_ERROR "CMake step for googletest failed: ${result}")
 endif()
+execute_process(COMMAND ${CMAKE_COMMAND} --build .
+  RESULT_VARIABLE result
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+if(result)
+  message(FATAL_ERROR "Build step for googletest failed: ${result}")
+endif()
+
+# Prevent overriding the parent project's compiler/linker
+# settings on Windows
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+# Add googletest directly to our build. This defines
+# the gtest and gtest_main targets.
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+                 EXCLUDE_FROM_ALL)
+
+# The gtest/gtest_main targets carry header search path
+# dependencies automatically when using CMake 2.8.11 or
+# later. Otherwise we have to add them here ourselves.
+if (CMAKE_VERSION VERSION_LESS 2.8.11)
+  include_directories("${gtest_SOURCE_DIR}/include")
+endif()
+
+
+
+add_compile_options("$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:DEBUG>>:/MDd>")
+add_compile_options("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:DEBUG>>:-O0;-ggdb3>")
+add_compile_options("$<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:DEBUG>>:-O0;-ggdb3>")
 
 ExternalProject_Add(catch2
         PREFIX ${CMAKE_BINARY_DIR}/catch2
@@ -86,11 +106,18 @@ add_executable(ets2clienttest
     src/ets2client.cxx
 
     test/ets2clienttest.cxx
+    test/gmock_catch_interceptor.hpp
+    test/main.cpp
 )
 target_link_libraries(ets2clienttest 
-    PUBLIC ${MOSQUITTOPP_LIBRARY}
+    PUBLIC
+     ${MOSQUITTOPP_LIBRARY}
+     gmock
 )
-set_property(TARGET ets2clienttest PROPERTY CXX_STANDARD 14)
+set_property(TARGET ets2clienttest 
+    PROPERTY 
+    CXX_STANDARD 14
+)
 target_include_directories(ets2clienttest
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -98,8 +125,6 @@ add_dependencies(ets2clienttest catch2)
 add_test(NAME ets2client
       COMMAND ets2clienttest
 )
-
-
 
 find_package(Doxygen
              REQUIRED dot
@@ -111,6 +136,6 @@ doxygen_add_docs(
     "Build Documentation"
 )
 add_dependencies(doxygen scs_sdk)
-
 add_custom_target(doc ALL
-	DEPENDS doxygen)
+    DEPENDS doxygen
+)

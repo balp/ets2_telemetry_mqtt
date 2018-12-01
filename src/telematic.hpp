@@ -44,9 +44,9 @@ class ITelematic
     /**
      * Register as hander for SCS telematics channel.
      */
-    virtual void register_for_channel(const scs_telemetry_init_params_v100_t *const telemetry)
+    virtual scs_result_t register_for_channel(const scs_telemetry_init_params_v100_t *const telemetry)
     {
-        telemetry->register_for_channel(_name,
+        return telemetry->register_for_channel(_name,
                                         SCS_U32_NIL,
                                         _value_type,
                                         SCS_TELEMETRY_CHANNEL_FLAG_no_value,
