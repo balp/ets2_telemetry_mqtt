@@ -24,6 +24,8 @@
 #include "amtrucks/scssdk_ats.h"
 #include "amtrucks/scssdk_telemetry_ats.h"
 
+extern scs_log_t game_log;
+
 class ITelematic
 {
   protected:
@@ -58,10 +60,11 @@ class ITelematic
                                       const scs_value_t *const value,
                                       const scs_context_t context)
     {
-        assert(value);
-        assert(context);
-        ITelematic *object = static_cast<ITelematic *>(context);
-        object->setValue(value);
+        if (value != nullptr && context != nullptr)
+        {
+            ITelematic *object = static_cast<ITelematic *>(context);
+            object->setValue(value);
+        }
     }
     virtual void setValue(const scs_value_t *const value) = 0;
 };
@@ -77,8 +80,12 @@ class TelematicUint32 : public ITelematic
 
     void setValue(const scs_value_t *const value) override
     {
-        assert(value->type == SCS_VALUE_TYPE_u32);
-        _value = value->value_u32.value;
+        if(value->type == SCS_VALUE_TYPE_u32) {
+            _value = value->value_u32.value;
+        } else {
+            game_log(SCS_LOG_TYPE_warning, "TelematicUint32() non U32 data");
+        }
+
     }
 
     nlohmann::json getJson() override
@@ -209,6 +216,29 @@ class TelematicFVector : public ITelematic
         j[_name]["x"] = _value.x;
         j[_name]["y"] = _value.y;
         j[_name]["z"] = _value.z;
+        return j;
+    }
+};
+
+class TelematicBool : public ITelematic
+{
+    bool _value;
+
+  public:
+    virtual ~TelematicBool() {}
+    TelematicBool(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_bool),
+                                              _value(0) {}
+
+    void setValue(const scs_value_t *const value) override
+    {
+        assert(value->type == SCS_VALUE_TYPE_bool);
+        _value = value->value_bool.value;
+    }
+
+    nlohmann::json getJson() override
+    {
+        nlohmann::json j;
+        j[_name] = _value;
         return j;
     }
 };

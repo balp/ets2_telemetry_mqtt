@@ -4,6 +4,8 @@
 #include "telematic.hpp"
 #include "gmock/gmock.h"
 
+
+
 struct ITelemetryInit
 {
     virtual ~ITelemetryInit() {}
@@ -291,5 +293,39 @@ TEST_CASE("TelematicFVector life cycle", "[TelematicFVector]")
             {"z", 3.0}
         };
         REQUIRE(tmp["test"] == expected);
+    }
+}
+
+
+
+TEST_CASE("TelematicBool life cycle", "[TelematicBool]")
+{
+    TelemetryInitMock _telemetryInitMock;
+    telemetryInitMock = &_telemetryInitMock;
+    std::shared_ptr<ITelematic> telematic = std::make_shared<TelematicBool>("test");
+    scs_telemetry_init_params_v100_t params;
+    params.register_for_channel = test;
+
+    SECTION("Register for right channel")
+    {
+        EXPECT_CALL(_telemetryInitMock,
+                    register_for_event("test", _, SCS_VALUE_TYPE_bool, _, _, _))
+            .WillOnce(Return(SCS_RESULT_ok));
+
+        auto res = telematic->register_for_channel(&params);
+        REQUIRE(res == SCS_RESULT_ok);
+    }
+
+    SECTION("Handle value callback")
+    {
+        scs_value_t value;
+        value.type = SCS_VALUE_TYPE_bool;
+        value.value_bool.value = 1;
+        ITelematic::value_callback("test",
+                                   0,
+                                   &value,
+                                   static_cast<scs_context_t>(telematic.get()));
+        auto tmp = telematic->getJson();
+        REQUIRE(tmp["test"] == true);
     }
 }

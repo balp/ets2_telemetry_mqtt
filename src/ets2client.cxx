@@ -46,10 +46,24 @@ struct telemetry_state_t
                           _common({std::make_shared<TelematicUint32>(SCS_TELEMETRY_CHANNEL_game_time),
                                    std::make_shared<TelematicFloat>(SCS_TELEMETRY_CHANNEL_local_scale),
                                    std::make_shared<TelematicInt32>(SCS_TELEMETRY_CHANNEL_next_rest_stop)}),
-                          _truck({std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_speed),
+
+                          _truck({
+                              // Movement.
+                              std::make_shared<TelematicDPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_world_placement),
+                              std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_linear_velocity),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_angular_velocity),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_linear_acceleration),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_angular_acceleration),
+                                  std::make_shared<TelematicFPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_offset),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_angular_velocity),
+                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_angular_acceleration),
+                                  std::make_shared<TelematicFPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_head_offset),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_speed),
+                                  // Powertrain related
                                   std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_engine_rpm),
                                   std::make_shared<TelematicInt32>(SCS_TELEMETRY_TRUCK_CHANNEL_engine_gear),
                                   std::make_shared<TelematicInt32>(SCS_TELEMETRY_TRUCK_CHANNEL_displayed_gear),
+                                  // Driving
                                   std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_input_steering),
                                   std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_input_throttle),
                                   std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_input_brake),
@@ -59,15 +73,71 @@ struct telemetry_state_t
                                   std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_effective_brake),
                                   std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_effective_clutch),
                                   std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_cruise_control),
-                                  std::make_shared<TelematicDPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_world_placement),
-                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_linear_velocity),
-                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_angular_velocity),
-                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_linear_acceleration),
-                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_local_angular_acceleration),
-                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_angular_velocity),
-                                  std::make_shared<TelematicFVector>(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_angular_acceleration),
-                                  std::make_shared<TelematicFPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_cabin_offset),
-                                  std::make_shared<TelematicFPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_head_offset),
+                                  // Gearbox related
+                                  std::make_shared<TelematicUint32>(SCS_TELEMETRY_TRUCK_CHANNEL_hshifter_slot),
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_hshifter_selector
+                                  // Brakes.
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_parking_brake),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_motor_brake),
+                                  std::make_shared<TelematicUint32>(SCS_TELEMETRY_TRUCK_CHANNEL_retarder_level),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_brake_air_pressure),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_brake_air_pressure_warning),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_brake_air_pressure_emergency),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_brake_temperature),
+                                  // Various "consumables"
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_fuel),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_fuel_warning),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_fuel_average_consumption),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_fuel_range),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_adblue),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_adblue_warning),
+                                  // unsupported std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_adblue_average_consumption),
+                                  // Oil
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_oil_pressure),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_oil_pressure_warning),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_oil_temperature),
+                                  // Temperature in various systems.
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_water_temperature),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_water_temperature_warning),
+                                  // Battery
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_battery_voltage),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_battery_voltage_warning),
+                                  // Enabled state of various elements
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_electric_enabled),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_engine_enabled),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_lblinker),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_rblinker),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_lblinker),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_rblinker),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_parking),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_low_beam),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_high_beam),
+                                  std::make_shared<TelematicUint32>(SCS_TELEMETRY_TRUCK_CHANNEL_light_aux_front),
+                                  std::make_shared<TelematicUint32>(SCS_TELEMETRY_TRUCK_CHANNEL_light_aux_roof),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_beacon),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_brake),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_light_reverse),
+                                  std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_wipers),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_dashboard_backlight),
+                                  // Wear info
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wear_engine),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wear_transmission),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wear_cabin),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wear_chassis),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wear_wheels),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_odometer),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_navigation_distance),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_navigation_time),
+                                  std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_navigation_speed_limit),
+                                  // Wheels
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_susp_deflection
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_on_ground
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_substance
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_velocity
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_velocity
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_rotation
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift
+                                  // SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift_offset
                                   })
     {
     }
