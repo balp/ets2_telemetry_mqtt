@@ -213,18 +213,20 @@ SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
     j["raw_rendering_timestamp"] = telemetry.raw_rendering_timestamp;
     j["raw_simulation_timestamp"] = telemetry.raw_simulation_timestamp;
     j["raw_paused_simulation_timestamp"] = telemetry.raw_paused_simulation_timestamp;
-    j["common"] = nlohmann::json::array();
+    j["common"] = nlohmann::json::object();
     for (auto channel : telemetry._common)
     {
-        j["common"].push_back(channel->getJson());
+        j["common"].update(channel->getJson());
     }
+    j["truck"] = nlohmann::json::object();
     for (auto channel : telemetry._truck)
     {
-        j["truck"].push_back(channel->getJson());
+        j["truck"].update(channel->getJson());
     }
+    j["trailer"] = nlohmann::json::object();
     for (auto channel : telemetry._trailer)
     {
-        j["trailer"].push_back(channel->getJson());
+        j["trailer"].update(channel->getJson());
     }
     
     std::string json_string = j.dump();
