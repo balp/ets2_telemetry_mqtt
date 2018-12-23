@@ -92,6 +92,7 @@ add_library(ets2telemery MODULE
 	src/mqttClient.hpp
 	src/mqttClient.cxx
 	src/ets2client.cxx
+	src/scslog.hpp
 )
 
 add_dependencies(ets2telemery scs_sdk json)

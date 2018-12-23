@@ -23,6 +23,7 @@
 
 #include "mqttClient.hpp"
 #include "telematic.hpp"
+#include "scslog.hpp"
 
 #define UNUSED(x)
 
@@ -172,9 +173,10 @@ struct telemetry_state_t
 
 } telemetry;
 
-Ets2MqttWrapper *mqttHdl = NULL;
+static Logger logger;
+static Ets2MqttWrapper *mqttHdl = NULL;
 scs_log_t game_log = NULL;
-bool output_paused = true;
+static bool output_paused = true;
 
 SCSAPI_VOID telemetry_frame_start(const scs_event_t UNUSED(event),
                                   const void *const event_info,
@@ -337,9 +339,12 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
         return SCS_RESULT_unsupported;
     }
     const scs_telemetry_init_params_v100_t *const version_params = static_cast<const scs_telemetry_init_params_v100_t *>(params);
+    game_log = version_params->common.log;
+    logger.setGameLog(game_log);
+    logger.message("Initializing telemetry mqtt gateway");
     try
     {
-        mqttHdl = new Ets2MqttWrapper("ETS2-MQTT", "127.0.0.1", 1883);
+        mqttHdl = new Ets2MqttWrapper("ETS2-MQTT", "127.0.0.1", 1883, logger);
     }
     catch (...)
     {
@@ -347,9 +352,10 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
     }
     if (mqttHdl == NULL)
     {
-        version_params->common.log(SCS_LOG_TYPE_error, "Unable to initialize the log file");
+        logger.error("No MQTT Connection");
         return SCS_RESULT_generic_error;
     }
+    logger.message("MQTT Connected");
     const bool events_registered =
         (version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_start, telemetry_frame_start, NULL) == SCS_RESULT_ok) &&
         (version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_end, telemetry_frame_end, NULL) == SCS_RESULT_ok) &&
@@ -357,7 +363,7 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
         (version_params->register_for_event(SCS_TELEMETRY_EVENT_started, telemetry_pause, NULL) == SCS_RESULT_ok);
     if (!events_registered)
     {
-        version_params->common.log(SCS_LOG_TYPE_error, "Unable to register event callbacks");
+        logger.error("Unable to register event callbacks");
         return SCS_RESULT_generic_error;
     }
     version_params->register_for_event(SCS_TELEMETRY_EVENT_configuration,
@@ -376,9 +382,6 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
         channel->register_for_channel(version_params);
     }
 
-    game_log = version_params->common.log;
-    game_log(SCS_LOG_TYPE_message, "Initializing telemetry mqtt gateway");
-    //memset(&telemetry, 0, sizeof(telemetry));
     last_timestamp = static_cast<scs_timestamp_t>(-1);
     output_paused = true;
     return SCS_RESULT_ok;
@@ -386,7 +389,9 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
 
 SCSAPI_VOID scs_telemetry_shutdown(void)
 {
+    logger.message("Shutdown telemetry mqtt gateway");
     game_log = NULL;
+    logger.setGameLog(NULL);
 }
 
 #ifdef _WIN32

@@ -8,4 +8,7 @@ cmake --build . --target ets2telemery
 cmake --build . --target ets2clienttest -- -v
 ctest .
 
+mkdir -p ~/.local/share/Steam/steamapps/common/Euro\ Truck\ Simulator\ 2/bin/linux_x64/plugins
 cp libets2telemery.so ~/.local/share/Steam/steamapps/common/Euro\ Truck\ Simulator\ 2/bin/linux_x64/plugins
+mkdir -p ~/.local/share/Steam/steamapps/common/American\ Truck\ Simulator/bin/linux_x64/plugins
+cp libets2telemery.so ~/.local/share/Steam/steamapps/common/American\ Truck\ Simulator/bin/linux_x64/plugins
