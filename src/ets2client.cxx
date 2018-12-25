@@ -243,12 +243,12 @@ SCSAPI_VOID telemetry_pause(const scs_event_t event,
     if (event == SCS_TELEMETRY_EVENT_paused)
     {
         auto msg = "telemetry_pause(): Paused";
-        auto res = mqttHdl->publish(NULL, "ets2/info", strlen(msg), msg);
+        auto res = mqttHdl->publish(NULL, "ets2/info", strlen(msg), msg, 0, true);
     }
     else if (event == SCS_TELEMETRY_EVENT_started)
     {
         auto msg = "telemetry_pause(): Started";
-        auto res = mqttHdl->publish(NULL, "ets2/info", strlen(msg), msg);
+        auto res = mqttHdl->publish(NULL, "ets2/info", strlen(msg), msg, 0, true);
     }
     else
     {
@@ -328,7 +328,25 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
     }
     std::string topic = std::string("ets2/info/config/") + info->id;
     std::string json_string = j.dump();
-    mqttHdl->publish(NULL, topic.c_str(), strlen(json_string.c_str()), json_string.c_str());
+    mqttHdl->publish(NULL, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
+}
+
+void publish_game_info(const scs_telemetry_init_params_v100_t *const params)
+{
+    if (mqttHdl == NULL)
+    {
+        return;
+    }
+    nlohmann::json j;
+    j["name"] = params->common.game_name;
+    j["id"] = params->common.game_id;
+    j["raw_version"] = params->common.game_version;
+    j["version"] = {{"major", SCS_GET_MAJOR_VERSION(params->common.game_version)},
+        {"minor", SCS_GET_MINOR_VERSION(params->common.game_version)}};
+
+
+    std::string json_string = j.dump();
+    mqttHdl->publish(NULL, "ets2/game", strlen(json_string.c_str()), json_string.c_str(), 0, true);
 }
 
 SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
@@ -356,6 +374,7 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
         return SCS_RESULT_generic_error;
     }
     logger.message("MQTT Connected");
+    publish_game_info(version_params);
     const bool events_registered =
         (version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_start, telemetry_frame_start, NULL) == SCS_RESULT_ok) &&
         (version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_end, telemetry_frame_end, NULL) == SCS_RESULT_ok) &&
