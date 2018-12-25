@@ -240,21 +240,20 @@ SCSAPI_VOID telemetry_pause(const scs_event_t event,
                             const scs_context_t UNUSED(context))
 {
     output_paused = (event == SCS_TELEMETRY_EVENT_paused);
+    nlohmann::json j;
     if (event == SCS_TELEMETRY_EVENT_paused)
     {
-        auto msg = "telemetry_pause(): Paused";
-        auto res = mqttHdl->publish(NULL, "ets2/info", strlen(msg), msg, 0, true);
+        j["paused"] = true;
     }
     else if (event == SCS_TELEMETRY_EVENT_started)
     {
-        auto msg = "telemetry_pause(): Started";
-        auto res = mqttHdl->publish(NULL, "ets2/info", strlen(msg), msg, 0, true);
+        j["paused"] = false;
     }
     else
     {
-        auto msg = "telemetry_pause(): ???";
-        auto res = mqttHdl->publish(NULL, "ets2/info", strlen(msg), msg);
     }
+    std::string json_string = j.dump();
+    mqttHdl->publish(NULL, "ets2/info", strlen(json_string.c_str()), json_string.c_str(), 0, true);
 }
 
 SCSAPI_VOID telemetry_configuration(const scs_event_t event,
