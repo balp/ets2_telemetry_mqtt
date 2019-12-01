@@ -330,6 +330,81 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
     mqttHdl->publish(NULL, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
 }
 
+SCSAPI_VOID telemetry_gameplay(const scs_event_t event,
+                                    const void *const event_info,
+                                    const scs_context_t UNUSED(context))
+{
+    const struct scs_telemetry_gameplay_event_t *const info = static_cast<const scs_telemetry_gameplay_event_t *>(event_info);
+    nlohmann::json j = nlohmann::json::object();
+    for (const scs_named_value_t *current = info->attributes; current->name; ++current)
+    {
+        switch (current->value.type)
+        {
+        case SCS_VALUE_TYPE_INVALID:
+            j[current->name] = "[invalid]";
+            break;
+        case SCS_VALUE_TYPE_bool:
+            j[current->name] = current->value.value_bool.value ? true : false;
+            break;
+        case SCS_VALUE_TYPE_s32:
+            j[current->name] = current->value.value_s32.value;
+            break;
+        case SCS_VALUE_TYPE_u32:
+            j[current->name] = current->value.value_u32.value;
+            break;
+        case SCS_VALUE_TYPE_u64:
+            j[current->name] = current->value.value_u64.value;
+            break;
+        case SCS_VALUE_TYPE_float:
+            j[current->name] = current->value.value_float.value;
+            break;
+        case SCS_VALUE_TYPE_double:
+            j[current->name] = current->value.value_double.value;
+            break;
+        case SCS_VALUE_TYPE_fvector:
+            j[current->name]["x"] = current->value.value_fvector.x;
+            j[current->name]["y"] = current->value.value_fvector.y;
+            j[current->name]["z"] = current->value.value_fvector.z;
+            break;
+        case SCS_VALUE_TYPE_dvector:
+            j[current->name]["x"] = current->value.value_dvector.x;
+            j[current->name]["y"] = current->value.value_dvector.y;
+            j[current->name]["z"] = current->value.value_dvector.z;
+            break;
+        case SCS_VALUE_TYPE_euler:
+            j[current->name]["heading"] = current->value.value_euler.heading;
+            j[current->name]["pitch"] = current->value.value_euler.pitch;
+            j[current->name]["roll"] = current->value.value_euler.roll;
+            break;
+        case SCS_VALUE_TYPE_fplacement:
+            j[current->name]["x"] = current->value.value_fplacement.position.x;
+            j[current->name]["y"] = current->value.value_fplacement.position.y;
+            j[current->name]["z"] = current->value.value_fplacement.position.z;
+            j[current->name]["heading"] = current->value.value_fplacement.orientation.heading;
+            j[current->name]["pitch"] = current->value.value_fplacement.orientation.pitch;
+            j[current->name]["roll"] = current->value.value_fplacement.orientation.roll;
+            break;
+        case SCS_VALUE_TYPE_dplacement:
+            j[current->name]["x"] = current->value.value_dplacement.position.x;
+            j[current->name]["y"] = current->value.value_dplacement.position.y;
+            j[current->name]["z"] = current->value.value_dplacement.position.z;
+            j[current->name]["heading"] = current->value.value_dplacement.orientation.heading;
+            j[current->name]["pitch"] = current->value.value_dplacement.orientation.pitch;
+            j[current->name]["roll"] = current->value.value_dplacement.orientation.roll;
+            break;
+        case SCS_VALUE_TYPE_string:
+            j[current->name] = current->value.value_string.value;
+            break;
+        default:
+            break;
+        }
+    }
+    std::string topic = std::string("ets2/info/gameplay/") + info->id;
+    std::string json_string = j.dump();
+    mqttHdl->publish(NULL, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
+}
+
+
 void publish_game_info(const scs_telemetry_init_params_v100_t *const params)
 {
     if (mqttHdl == NULL)
@@ -351,11 +426,11 @@ void publish_game_info(const scs_telemetry_init_params_v100_t *const params)
 SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
                                  const scs_telemetry_init_params_t *const params)
 {
-    if (version != SCS_TELEMETRY_VERSION_1_00)
+    if (version != SCS_TELEMETRY_VERSION_1_01)
     {
         return SCS_RESULT_unsupported;
     }
-    const scs_telemetry_init_params_v100_t *const version_params = static_cast<const scs_telemetry_init_params_v100_t *>(params);
+    const scs_telemetry_init_params_v101_t *const version_params = static_cast<const scs_telemetry_init_params_v101_t *>(params);
     game_log = version_params->common.log;
     logger.setGameLog(game_log);
     logger.message("Initializing telemetry mqtt gateway");
@@ -386,6 +461,9 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
     }
     version_params->register_for_event(SCS_TELEMETRY_EVENT_configuration,
                                        telemetry_configuration, NULL);
+    version_params->register_for_event(SCS_TELEMETRY_EVENT_gameplay,
+                                       telemetry_gameplay, NULL);
+
     for (auto channel : telemetry._common)
     {
         channel->register_for_channel(version_params);

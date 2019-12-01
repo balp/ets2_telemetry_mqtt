@@ -67,7 +67,7 @@ if(NOT ${MOSQITTO_FOUND})
 endif()
 
 ExternalProject_Add(scs_sdk
-    URL http://download.eurotrucksimulator2.com/scs_sdk_1_9.zip
+    URL http://download.eurotrucksimulator2.com/scs_sdk_1_11.zip
     PREFIX ${CMAKE_BINARY_DIR}/external/scs_sdk
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
