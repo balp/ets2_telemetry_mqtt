@@ -4,3 +4,4 @@
 build/*
 build_ubuntu_clang/*
 core
+/cmake-build-debug/

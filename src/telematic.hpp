@@ -63,10 +63,10 @@ class ITelematic
         if (value != nullptr && context != nullptr)
         {
             ITelematic *object = static_cast<ITelematic *>(context);
-            object->setValue(value);
+            object->setValue(value, 0);
         }
     }
-    virtual void setValue(const scs_value_t *const value) = 0;
+    virtual void setValue(const scs_value_t *const value, const scs_u32_t index) = 0;
 };
 
 class TelematicUint32 : public ITelematic
@@ -78,7 +78,7 @@ class TelematicUint32 : public ITelematic
     TelematicUint32(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_u32),
                                                _value(0) {}
 
-    void setValue(const scs_value_t *const value) override
+    void setValue(const scs_value_t *const value, const scs_u32_t index) override
     {
         if(value->type == SCS_VALUE_TYPE_u32) {
             _value = value->value_u32.value;
@@ -105,7 +105,7 @@ class TelematicInt32 : public ITelematic
     TelematicInt32(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_s32),
                                               _value(0) {}
 
-    void setValue(const scs_value_t *const value) override
+    void setValue(const scs_value_t *const value, const scs_u32_t index) override
     {
         assert(value->type == SCS_VALUE_TYPE_s32);
         _value = value->value_s32.value;
@@ -127,7 +127,7 @@ class TelematicFloat : public ITelematic
     TelematicFloat(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_float),
                                               _value(0.0f) {}
 
-    void setValue(const scs_value_t *const value) override
+    void setValue(const scs_value_t *const value, const scs_u32_t index) override
     {
         assert(value->type == SCS_VALUE_TYPE_float);
         _value = value->value_float.value;
@@ -149,7 +149,7 @@ class TelematicDPlacement : public ITelematic
     TelematicDPlacement(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_dplacement),
                                                    _value({{0}, {0}, 0}) {}
 
-    void setValue(const scs_value_t *const value) override
+    void setValue(const scs_value_t *const value, const scs_u32_t index) override
     {
         assert(value->type == SCS_VALUE_TYPE_dplacement);
         _value = value->value_dplacement;
@@ -176,7 +176,7 @@ class TelematicFPlacement : public ITelematic
     TelematicFPlacement(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_fplacement),
                                                    _value({{0}, {0}}) {}
 
-    void setValue(const scs_value_t *const value) override
+    void setValue(const scs_value_t *const value, const scs_u32_t index) override
     {
         assert(value->type == SCS_VALUE_TYPE_fplacement);
         _value = value->value_fplacement;
@@ -204,7 +204,7 @@ class TelematicFVector : public ITelematic
     TelematicFVector(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_fvector),
                                                 _value({0}) {}
 
-    void setValue(const scs_value_t *const value) override
+    void setValue(const scs_value_t *const value, const scs_u32_t index) override
     {
         assert(value->type == SCS_VALUE_TYPE_fvector);
         _value = value->value_fvector;
@@ -229,7 +229,7 @@ class TelematicBool : public ITelematic
     TelematicBool(const scs_string_t name) : ITelematic(name, SCS_VALUE_TYPE_bool),
                                               _value(0) {}
 
-    void setValue(const scs_value_t *const value) override
+    void setValue(const scs_value_t *const value, const scs_u32_t index) override
     {
         assert(value->type == SCS_VALUE_TYPE_bool);
         _value = value->value_bool.value;

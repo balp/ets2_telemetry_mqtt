@@ -35,11 +35,11 @@ if (CMAKE_VERSION VERSION_LESS 2.8.11)
   include_directories("${gtest_SOURCE_DIR}/include")
 endif()
 
-
-
-add_compile_options("$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:DEBUG>>:/MDd>")
-add_compile_options("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:DEBUG>>:-O0;-ggdb3>")
-add_compile_options("$<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:DEBUG>>:-O0;-ggdb3>")
+add_compile_options("$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/MDd>")
+add_compile_options("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Debug>>:-O0;-ggdb3>")
+add_compile_options("$<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:Debug>>:-O0;-ggdb3;-fprofile-instr-generate;-fcoverage-mapping>")
+add_compile_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
+add_link_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
 
 ExternalProject_Add(catch2
         PREFIX ${CMAKE_BINARY_DIR}/catch2
@@ -122,7 +122,7 @@ set_property(TARGET ets2clienttest
 target_include_directories(ets2clienttest
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-add_dependencies(ets2clienttest catch2)
+add_dependencies(ets2clienttest catch2 json scs_sdk)
 add_test(NAME ets2client
       COMMAND ets2clienttest
 )
