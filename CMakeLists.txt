@@ -91,6 +91,8 @@ include_directories(${CMAKE_BINARY_DIR}/external/json/src)
 add_library(ets2telemery MODULE
 	src/mqttClient.hpp
 	src/mqttClient.cxx
+    src/telemetry_state.hpp
+    src/telemetry_state.cpp
 	src/ets2client.cxx
 	src/scslog.hpp
 )
@@ -104,6 +106,8 @@ target_link_libraries(ets2telemery
 add_executable(ets2clienttest
     src/mqttClient.hpp
     src/mqttClient.cxx
+    src/telemetry_state.hpp
+    src/telemetry_state.cpp
     src/ets2client.cxx
 
     test/ets2clienttest.cxx
