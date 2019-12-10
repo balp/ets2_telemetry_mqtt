@@ -20,8 +20,6 @@
 #include "telematic.hpp"
 
 
-
-
 static const size_t kMaxHShifterSlots = 10;
 static const size_t kMaxWheelCount = 14;
 
@@ -47,7 +45,7 @@ public:
     nlohmann::json getJson() {
         auto json = nlohmann::json::object();
         json["index"] = index;
-        for (const auto& channel : channels) {
+        for (const auto &channel : channels) {
             json.update(channel->getJson());
         }
         return json;
@@ -72,12 +70,20 @@ public:
     }
 };
 
-
 class Truck {
+private:
+    scs_telemetry_register_for_channel_t registerForChannel;
+    scs_telemetry_unregister_from_channel_t unregisterFromChannel;
+
+    size_t no_truck_wheels;
+    std::vector<std::shared_ptr<TruckWheel>> truck_wheels;
 public:
     std::vector<std::shared_ptr<ITelematic>> _truck;
 
-    Truck() :
+    Truck(scs_telemetry_register_for_channel_t register_for_channel,
+          scs_telemetry_unregister_from_channel_t unregister_from_channel) :
+            registerForChannel(register_for_channel),
+            unregisterFromChannel(unregister_from_channel),
             _truck({
                            // Movement.
                            std::make_shared<TelematicDPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_world_placement),
@@ -160,11 +166,28 @@ public:
                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_odometer),
                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_navigation_distance),
                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_navigation_time),
-                           std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_navigation_speed_limit),
+                           std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_navigation_speed_limit)}),
+            no_truck_wheels(0),
+            truck_wheels({std::make_shared<TruckWheel>(0),
+                          std::make_shared<TruckWheel>(1),
+                          std::make_shared<TruckWheel>(2),
+                          std::make_shared<TruckWheel>(3),
+                          std::make_shared<TruckWheel>(4),
+                          std::make_shared<TruckWheel>(5),
+                          std::make_shared<TruckWheel>(6),
+                          std::make_shared<TruckWheel>(7),
+                          std::make_shared<TruckWheel>(8),
+                          std::make_shared<TruckWheel>(9),
+                          std::make_shared<TruckWheel>(10),
+                          std::make_shared<TruckWheel>(11),
+                          std::make_shared<TruckWheel>(12),
+                          std::make_shared<TruckWheel>(13)}) {}
 
-                   }) {}
+    void update_config(const scs_telemetry_configuration_t *pConfiguration);
+    nlohmann::json getJson();
+    scs_result_t register_for_channel();
+    scs_result_t unregister_from_channel();
 };
-
 
 class TrailerWheel {
 private:
@@ -187,7 +210,7 @@ public:
     nlohmann::json getJson() {
         auto json = nlohmann::json::object();
         json["index"] = index;
-        for (const auto& channel : channels) {
+        for (const auto &channel : channels) {
             json.update(channel->getJson());
         }
         return json;
@@ -211,7 +234,6 @@ public:
         return result;
     }
 };
-
 
 class Trailer {
 private:
@@ -260,6 +282,8 @@ public:
 
     void update_config(const scs_telemetry_configuration_t *pConfiguration);
     nlohmann::json getJson();
+    scs_result_t register_for_channel();
+    scs_result_t unregister_from_channel();
 };
 
 class TelemetryState {
@@ -272,8 +296,6 @@ private:
     std::vector<std::shared_ptr<ITelematic>> _common;
     Truck _truck_state;
     Trailer _trailer_state;
-    size_t no_truck_wheels;
-    std::vector<std::shared_ptr<TruckWheel>> truck_wheels;
 
 
 public:
@@ -286,28 +308,16 @@ public:
             _common({std::make_shared<TelematicUint32>(SCS_TELEMETRY_CHANNEL_game_time),
                      std::make_shared<TelematicFloat>(SCS_TELEMETRY_CHANNEL_local_scale),
                      std::make_shared<TelematicInt32>(SCS_TELEMETRY_CHANNEL_next_rest_stop)}),
-            _truck_state(),
-            _trailer_state(register_for_channel, unregister_from_channel),
-            no_truck_wheels(0),
-            truck_wheels({std::make_shared<TruckWheel>(0),
-                          std::make_shared<TruckWheel>(1),
-                          std::make_shared<TruckWheel>(2),
-                          std::make_shared<TruckWheel>(3),
-                          std::make_shared<TruckWheel>(4),
-                          std::make_shared<TruckWheel>(5),
-                          std::make_shared<TruckWheel>(6),
-                          std::make_shared<TruckWheel>(7),
-                          std::make_shared<TruckWheel>(8),
-                          std::make_shared<TruckWheel>(9),
-                          std::make_shared<TruckWheel>(10),
-                          std::make_shared<TruckWheel>(11),
-                          std::make_shared<TruckWheel>(12),
-                          std::make_shared<TruckWheel>(13)}) {}
+            _truck_state(register_for_channel, unregister_from_channel),
+            _trailer_state(register_for_channel, unregister_from_channel) {}
 
 
     void update_config(const scs_telemetry_configuration_t *pConfiguration);
+
     scs_result_t register_for_channel();
+
     scs_result_t unregister_from_channel();
+
     nlohmann::json getJson();
 };
 

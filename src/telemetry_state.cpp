@@ -68,18 +68,38 @@ void Trailer::update_config(const scs_telemetry_configuration_t *const pConfigur
 
 nlohmann::json Trailer::getJson() {
     nlohmann::json j;
-    for (const auto& channel : _trailer) { // XXX Move into Trailer
+    for (const auto& channel : _trailer) {
         j.update(channel->getJson());
     }
     j["wheels"] = nlohmann::json::array();
-    for (int index = 0; index < no_trailer_wheels; ++index) { // XXX Move into Trailer
+    for (int index = 0; index < no_trailer_wheels; ++index) {
         j["wheels"] += trailer_wheels[index]->getJson();
     }
     return j;
 }
 
-void TelemetryState::update_config(const scs_telemetry_configuration_t *const pConfiguration) {
-    _trailer_state.update_config(pConfiguration);
+
+scs_result_t Trailer::register_for_channel() {
+    scs_result_t result = SCS_RESULT_ok;
+    for (const auto &channel : _trailer) {
+        auto tmp = channel->register_for_channel(registerForChannel, SCS_U32_NIL);
+        if (tmp != SCS_RESULT_ok) { result = tmp; }
+    }
+    return result;
+}
+
+scs_result_t Trailer::unregister_from_channel() {
+    scs_result_t result = SCS_RESULT_ok;
+    for (const auto &channel : _trailer) {
+        auto tmp = channel->unregister_from_channel(unregisterFromChannel, SCS_U32_NIL);
+        if (tmp != SCS_RESULT_ok) { result = tmp; }
+    }
+    return result;
+}
+
+
+void Truck::update_config(const scs_telemetry_configuration_t *const pConfiguration) {
+
     if(registerForChannel && pConfiguration && pConfiguration->id) {
         if(!strcmp(pConfiguration->id, SCS_TELEMETRY_CONFIG_truck)) {
             const scs_named_value_t *const wheel_count_attr = find_attribute(*pConfiguration,
@@ -102,9 +122,43 @@ void TelemetryState::update_config(const scs_telemetry_configuration_t *const pC
                 }
             }
         }
-
-
     }
+}
+
+nlohmann::json Truck::getJson() {
+    nlohmann::json j;
+    for (const auto& channel : _truck) {
+        j.update(channel->getJson());
+    }
+    j["wheels"] = nlohmann::json::array();
+    for (int index = 0; index < no_truck_wheels; ++index) {  // XXX Move into Truck
+        j["wheels"] += truck_wheels[index]->getJson();
+    }
+    return j;
+}
+
+scs_result_t Truck::register_for_channel() {
+    scs_result_t result = SCS_RESULT_ok;
+    for (const auto &channel : _truck) {
+        auto tmp = channel->register_for_channel(registerForChannel, SCS_U32_NIL);
+        if (tmp != SCS_RESULT_ok) { result = tmp; }
+    }
+    return result;
+}
+
+scs_result_t Truck::unregister_from_channel() {
+    scs_result_t result = SCS_RESULT_ok;
+    for (const auto &channel : _truck) {
+        auto tmp = channel->unregister_from_channel(unregisterFromChannel, SCS_U32_NIL);
+        if (tmp != SCS_RESULT_ok) { result = tmp; }
+    }
+    return result;
+}
+
+
+void TelemetryState::update_config(const scs_telemetry_configuration_t *const pConfiguration) {
+    _truck_state.update_config(pConfiguration);
+    _trailer_state.update_config(pConfiguration);
 }
 
 nlohmann::json TelemetryState::getJson() {
@@ -113,16 +167,8 @@ nlohmann::json TelemetryState::getJson() {
     for (const auto& channel : _common) {
         j["common"].update(channel->getJson());
     }
-    j["truck"] = nlohmann::json::object();
-    for (const auto& channel : _truck_state._truck) { // XXX Move into Truck
-        j["truck"].update(channel->getJson());
-    }
-    j["truck_wheels"] = nlohmann::json::array();
-    for (int index = 0; index < no_truck_wheels; ++index) {  // XXX Move into Truck
-        j["truck_wheels"] += truck_wheels[index]->getJson();
-    }
+    j["truck"] = _truck_state.getJson();
     j["trailer"] = _trailer_state.getJson();
-
     return j;
 }
 
@@ -132,14 +178,10 @@ scs_result_t TelemetryState::register_for_channel() {
         auto tmp = channel->register_for_channel(registerForChannel, SCS_U32_NIL);
         if (tmp != SCS_RESULT_ok) { result = tmp; }
     }
-    for (const auto &channel : _truck_state._truck) {
-        auto tmp = channel->register_for_channel(registerForChannel, SCS_U32_NIL);
-        if (tmp != SCS_RESULT_ok) { result = tmp; }
-    }
-    for (const auto &channel : _trailer_state._trailer) {
-        auto tmp = channel->register_for_channel(registerForChannel, SCS_U32_NIL);
-        if (tmp != SCS_RESULT_ok) { result = tmp; }
-    }
+    auto truck_register = _truck_state.register_for_channel();
+    if (truck_register != SCS_RESULT_ok) { result = truck_register; }
+    auto trailer_register = _trailer_state.register_for_channel();
+    if (trailer_register != SCS_RESULT_ok) { result = trailer_register; }
     return result;
 }
 
@@ -149,13 +191,9 @@ scs_result_t TelemetryState::unregister_from_channel() {
         auto tmp = channel->unregister_from_channel(unregisterFromChannel, SCS_U32_NIL);
         if (tmp != SCS_RESULT_ok) { result = tmp; }
     }
-    for (const auto &channel : _truck_state._truck) {
-        auto tmp = channel->unregister_from_channel(unregisterFromChannel, SCS_U32_NIL);
-        if (tmp != SCS_RESULT_ok) { result = tmp; }
-    }
-    for (const auto &channel : _trailer_state._trailer) {
-        auto tmp = channel->unregister_from_channel(unregisterFromChannel, SCS_U32_NIL);
-        if (tmp != SCS_RESULT_ok) { result = tmp; }
-    }
+    auto truck_unregister = _truck_state.unregister_from_channel();
+    if (truck_unregister != SCS_RESULT_ok) { result = truck_unregister; }
+    auto trailer_unregister = _trailer_state.unregister_from_channel();
+    if (trailer_unregister != SCS_RESULT_ok) { result = trailer_unregister; }
     return result;
 }
