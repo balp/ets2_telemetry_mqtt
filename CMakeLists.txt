@@ -95,6 +95,8 @@ add_library(ets2telemery MODULE
     src/telemetry_state.cpp
 	src/ets2client.cxx
 	src/scslog.hpp
+    src/simulation_timestamp.hpp
+    src/simulation_timestamp.cpp
 )
 
 add_dependencies(ets2telemery scs_sdk json)
@@ -109,6 +111,8 @@ add_executable(ets2clienttest
     src/telemetry_state.hpp
     src/telemetry_state.cpp
     src/ets2client.cxx
+    src/simulation_timestamp.hpp
+    src/simulation_timestamp.cpp
 
     test/ets2clienttest.cxx
     test/gmock_catch_interceptor.hpp

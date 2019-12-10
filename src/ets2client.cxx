@@ -20,39 +20,37 @@
 #include "telematic.hpp"
 #include "scslog.hpp"
 #include "telemetry_state.hpp"
+#include "simulation_timestamp.hpp"
 
 #define UNUSED(x)
 
 scs_timestamp_t last_timestamp = static_cast<scs_timestamp_t>(-1);
-
-
-
-
-
-nlohmann::json &setNamedValueToJson(const nlohmann::json &j, const scs_named_value_t *current);
-
 static Logger logger;
-
 static Ets2MqttWrapper *mqttHdl = nullptr;
 scs_log_t game_log = nullptr;
 static bool output_paused = true;
+
+struct ContextData {
+    SimulationTimestamp* timestamp_p;
+    TelemetryState* telemetry_p;
+};
 
 SCSAPI_VOID telemetry_frame_start(const scs_event_t UNUSED(event),
                                   const void *const event_info,
                                   const scs_context_t context) {
     const auto *const info = static_cast<const scs_telemetry_frame_start_t *>(event_info);
-    auto* telemetry_p = static_cast<TelemetryState *>(context);
+    auto* contextData = static_cast<ContextData *>(context);
     if (last_timestamp == static_cast<scs_timestamp_t>(-1)) {
         last_timestamp = info->paused_simulation_time;
     }
     if (info->flags & SCS_TELEMETRY_FRAME_START_FLAG_timer_restart) {
         last_timestamp = 0;
     }
-    telemetry_p->timestamp += (info->paused_simulation_time - last_timestamp);
+    contextData->timestamp_p->timestamp += (info->paused_simulation_time - last_timestamp);
     last_timestamp = info->paused_simulation_time;
-    telemetry_p->raw_rendering_timestamp = info->render_time;
-    telemetry_p->raw_simulation_timestamp = info->simulation_time;
-    telemetry_p->raw_paused_simulation_timestamp = info->paused_simulation_time;
+    contextData->timestamp_p->raw_rendering_timestamp = info->render_time;
+    contextData->timestamp_p->raw_simulation_timestamp = info->simulation_time;
+    contextData->timestamp_p->raw_paused_simulation_timestamp = info->paused_simulation_time;
 }
 
 SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
@@ -64,34 +62,11 @@ SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
     if (mqttHdl == nullptr) {
         return;
     }
-    auto* telemetry_p = static_cast<TelemetryState *>(context);
-    nlohmann::json j;
-    j["timestamp"] = telemetry_p->timestamp;
-    j["raw_rendering_timestamp"] = telemetry_p->raw_rendering_timestamp;
-    j["raw_simulation_timestamp"] = telemetry_p->raw_simulation_timestamp;
-    j["raw_paused_simulation_timestamp"] = telemetry_p->raw_paused_simulation_timestamp;
-    j["common"] = nlohmann::json::object();
-    for (const auto& channel : telemetry_p->_common) {
-        j["common"].update(channel->getJson());
-    }
-    j["truck"] = nlohmann::json::object();
-    for (const auto& channel : telemetry_p->_truck_state._truck) { // XXX Move into truck_telemetry_state_t
-        j["truck"].update(channel->getJson());
-    }
-    j["trailer"] = nlohmann::json::object();
-    for (const auto& channel : telemetry_p->_trailer_state._trailer) { // XXX Move into trailer_telemetry_state_t
-        j["trailer"].update(channel->getJson());
-    }
-    j["truck_wheels"] = nlohmann::json::array();
-    for (int index = 0; index < telemetry_p->no_truck_wheels; ++index) { // XXX Move to TelemetryState
-        j["truck_wheels"] += telemetry_p->truck_wheels[index]->getJson();
-    }
-    j["trailer_wheels"] = nlohmann::json::array();
-    for (int index = 0; index < telemetry_p->no_trailer_wheels; ++index) { // XXX Move to TelemetryState
-        j["trailer_wheels"] += telemetry_p->trailer_wheels[index]->getJson();
-    }
-    std::string json_string = j.dump();
+    auto* contextData = static_cast<ContextData *>(context);
+    std::string json_string = contextData->telemetry_p->getJson().dump();
     mqttHdl->publish(nullptr, "ets2/data", strlen(json_string.c_str()), json_string.c_str());
+    std::string json_timestamp_string = contextData->timestamp_p->getJson().dump();
+    mqttHdl->publish(nullptr, "ets2/timestamp", strlen(json_timestamp_string.c_str()), json_timestamp_string.c_str());
 }
 
 static nlohmann::json &setNamedValueToJson(nlohmann::json &j, const scs_named_value_t *current);
@@ -115,8 +90,8 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
                                     const void *const event_info,
                                     const scs_context_t context) {
     const auto *const info = static_cast<const scs_telemetry_configuration_t *>(event_info);
-    auto* telemetry_p = static_cast<TelemetryState *>(context);
-    telemetry_p->update_config(info);
+    auto* contextData = static_cast<ContextData *>(context);
+    contextData->telemetry_p->update_config(info);
     nlohmann::json j = nlohmann::json::object();
     for (const scs_named_value_t *current = info->attributes; current->name; ++current) {
         j = setNamedValueToJson(j, current);
@@ -244,28 +219,20 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
     }
     logger.message("MQTT Connected");
     publish_game_info(version_params);
-
-    TelemetryState* telemetry_p = new TelemetryState(version_params->register_for_channel,
+    ContextData* contextData = new ContextData();
+    contextData->telemetry_p = new TelemetryState(version_params->register_for_channel,
             version_params->unregister_from_channel,
             logger);
+    contextData->timestamp_p = new SimulationTimestamp();
 
-    version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_start, telemetry_frame_start, telemetry_p);
-    version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_end, telemetry_frame_end, telemetry_p);
-    version_params->register_for_event(SCS_TELEMETRY_EVENT_paused, telemetry_pause, telemetry_p);
-    version_params->register_for_event(SCS_TELEMETRY_EVENT_started, telemetry_pause, telemetry_p);
-    version_params->register_for_event(SCS_TELEMETRY_EVENT_configuration, telemetry_configuration, telemetry_p);
-    version_params->register_for_event(SCS_TELEMETRY_EVENT_gameplay, telemetry_gameplay, telemetry_p);
+    version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_start, telemetry_frame_start, contextData);
+    version_params->register_for_event(SCS_TELEMETRY_EVENT_frame_end, telemetry_frame_end, contextData);
+    version_params->register_for_event(SCS_TELEMETRY_EVENT_paused, telemetry_pause, contextData);
+    version_params->register_for_event(SCS_TELEMETRY_EVENT_started, telemetry_pause, contextData);
+    version_params->register_for_event(SCS_TELEMETRY_EVENT_configuration, telemetry_configuration, contextData);
+    version_params->register_for_event(SCS_TELEMETRY_EVENT_gameplay, telemetry_gameplay, contextData);
 
-    for (const auto &channel : telemetry_p->_common) {
-        channel->register_for_channel(version_params);
-    }
-
-    for (const auto &channel : telemetry_p->_truck_state._truck) {
-        channel->register_for_channel(version_params);
-    }
-    for (const auto &channel : telemetry_p->_trailer_state._trailer) {
-        channel->register_for_channel(version_params);
-    }
+    contextData->telemetry_p->register_for_channel();
 
     last_timestamp = static_cast<scs_timestamp_t>(-1);
     output_paused = true;

@@ -10,23 +10,27 @@
 #include <vector>
 #include <string>
 
-#include "scslog.hpp"
-#include "telematic.hpp"
-
+#include <scssdk.h>
 #include "amtrucks/scssdk_telemetry_ats.h"
 #include "amtrucks/scssdk_ats.h"
 #include "eurotrucks2/scssdk_telemetry_eut2.h"
 #include "eurotrucks2/scssdk_eut2.h"
+
+#include "scslog.hpp"
+#include "telematic.hpp"
+
+
 
 
 static const size_t kMaxHShifterSlots = 10;
 static const size_t kMaxWheelCount = 14;
 
 
-struct truck_telemetry_state_t {
+class Truck {
+public:
     std::vector<std::shared_ptr<ITelematic>> _truck;
 
-    truck_telemetry_state_t() :
+    Truck() :
             _truck({
                            // Movement.
                            std::make_shared<TelematicDPlacement>(SCS_TELEMETRY_TRUCK_CHANNEL_world_placement),
@@ -217,7 +221,7 @@ public:
         return result;
     }
 
-    virtual scs_result_t unregister_from_channel(scs_telemetry_unregister_from_channel_t unregister_from_channel) {
+    scs_result_t unregister_from_channel(scs_telemetry_unregister_from_channel_t unregister_from_channel) {
         scs_result_t result = SCS_RESULT_ok;
         for (const auto &channel : channels) {
             auto tmp = channel->unregister_from_channel(unregister_from_channel, index);
@@ -230,34 +234,26 @@ public:
 
 class TelemetryState {
 private:
-    scs_telemetry_register_for_channel_t register_for_channel;
-    scs_telemetry_unregister_from_channel_t unregister_from_channel;
+    scs_telemetry_register_for_channel_t registerForChannel;
+    scs_telemetry_unregister_from_channel_t unregisterFromChannel;
 
     Logger &_logger;
 
-public:
-    scs_timestamp_t timestamp;
-    scs_timestamp_t raw_rendering_timestamp;
-    scs_timestamp_t raw_simulation_timestamp;
-    scs_timestamp_t raw_paused_simulation_timestamp;
     std::vector<std::shared_ptr<ITelematic>> _common;
-    truck_telemetry_state_t _truck_state;
+    Truck _truck_state;
     trailer_telemetry_state_t _trailer_state;
     size_t no_truck_wheels;
     std::vector<std::shared_ptr<TruckWheel>> truck_wheels;
     size_t no_trailer_wheels;
     std::vector<std::shared_ptr<TrailerWheel>> trailer_wheels;
 
+public:
     TelemetryState(scs_telemetry_register_for_channel_t register_for_channel,
                    scs_telemetry_unregister_from_channel_t unregister_from_channel,
                    Logger &logger) :
-            register_for_channel(register_for_channel),
-            unregister_from_channel(unregister_from_channel),
+            registerForChannel(register_for_channel),
+            unregisterFromChannel(unregister_from_channel),
             _logger(logger),
-            timestamp(0),
-            raw_rendering_timestamp(0),
-            raw_simulation_timestamp(0),
-            raw_paused_simulation_timestamp(0),
             _common({std::make_shared<TelematicUint32>(SCS_TELEMETRY_CHANNEL_game_time),
                      std::make_shared<TelematicFloat>(SCS_TELEMETRY_CHANNEL_local_scale),
                      std::make_shared<TelematicInt32>(SCS_TELEMETRY_CHANNEL_next_rest_stop)}),
@@ -296,6 +292,9 @@ public:
 
 
     void update_config(const scs_telemetry_configuration_t *pConfiguration);
+    scs_result_t register_for_channel();
+    scs_result_t unregister_from_channel();
+    nlohmann::json getJson();
 };
 
 #endif //ETS2_MQTT_CONNECTOR_TELEMETRY_STATE_HPP
