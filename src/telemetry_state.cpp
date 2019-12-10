@@ -51,16 +51,14 @@ void TelemetryState::update_config(const scs_telemetry_configuration_t *const pC
             if (wheel_count > kMaxWheelCount) {
                 wheel_count = kMaxWheelCount;
             }
+            no_truck_wheels = wheel_count;
             // Update registrations for wheel channels
-            if (register_for_channel) {
+            if (register_for_channel && unregister_from_channel) {
                 for (int i = 0; i < kMaxWheelCount; ++i) {
                     if (i < wheel_count) {
-                        _logger.message("  register");
-                        _wheel_on_ground[i]->register_for_channel(register_for_channel, i);
+                        truck_wheels[i]->register_for_channel(register_for_channel);
                     } else {
-                        _logger.message("unregister");
-                        _wheel_on_ground[i]->unregister_from_channel(unregister_from_channel, i);
-
+                        truck_wheels[i]->unregister_from_channel(unregister_from_channel);
                     }
                 }
             }

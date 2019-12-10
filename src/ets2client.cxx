@@ -75,26 +75,17 @@ SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
         j["common"].update(channel->getJson());
     }
     j["truck"] = nlohmann::json::object();
-    for (const auto& channel : telemetry_p->_truck_state._truck) {
+    for (const auto& channel : telemetry_p->_truck_state._truck) { // XXX Move into truck_telemetry_state_t
         j["truck"].update(channel->getJson());
     }
     j["trailer"] = nlohmann::json::object();
-    for (const auto& channel : telemetry_p->_trailer_state._trailer) {
+    for (const auto& channel : telemetry_p->_trailer_state._trailer) { // XXX Move into trailer_telemetry_state_t
         j["trailer"].update(channel->getJson());
     }
-    j["wheel"] = nlohmann::json::array();
-    j["wheel"] += telemetry_p->_wheel_on_ground[0]->getJson();
-    j["wheel"] += telemetry_p->_wheel_on_ground[1]->getJson();
-    j["wheel"] += telemetry_p->_wheel_on_ground[2]->getJson();
-    j["wheel"] += telemetry_p->_wheel_on_ground[3]->getJson();
-    j["wheel"] += telemetry_p->_wheel_on_ground[4]->getJson();
-    j["wheel"] += telemetry_p->_wheel_on_ground[5]->getJson();
-    j["wheel"] += telemetry_p->_wheel_on_ground[6]->getJson();
-    j["wheel"] += telemetry_p->_wheel_on_ground[7]->getJson();
-    //for (const auto& channel : telemetry_p->_wheel_on_ground) {
-
-    //j["wheel_on_ground"].update(telemetry_p->_wheel_on_ground[0]->getJson());
-    //}
+    j["wheels"] = nlohmann::json::array();
+    for (int index = 0; index < telemetry_p->no_truck_wheels; ++index) { // XXX Move to TelemetryState
+        j["wheels"] += telemetry_p->truck_wheels[index]->getJson();
+    }
 
     std::string json_string = j.dump();
     mqttHdl->publish(nullptr, "ets2/data", strlen(json_string.c_str()), json_string.c_str());
