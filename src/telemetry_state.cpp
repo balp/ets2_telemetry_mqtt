@@ -39,30 +39,9 @@ const scs_named_value_t *find_attribute(const scs_telemetry_configuration_t &con
     return nullptr;
 }
 
-void TelemetryState::update_config(const scs_telemetry_configuration_t *const pConfiguration) {
-    _logger.message(pConfiguration->id);
-    if(registerForChannel && pConfiguration && pConfiguration->id) {
-        if(!strcmp(pConfiguration->id, SCS_TELEMETRY_CONFIG_truck)) {
-            const scs_named_value_t *const wheel_count_attr = find_attribute(*pConfiguration,
-                                                                             SCS_TELEMETRY_CONFIG_ATTRIBUTE_wheel_count,
-                                                                             SCS_U32_NIL,
-                                                                             SCS_VALUE_TYPE_u32);
-            size_t wheel_count = wheel_count_attr ? wheel_count_attr->value.value_u32.value : 0;
-            if (wheel_count > kMaxWheelCount) {
-                wheel_count = kMaxWheelCount;
-            }
-            no_truck_wheels = wheel_count;
-            // Update registrations for wheel channels
-            if (registerForChannel && unregisterFromChannel) {
-                for (int i = 0; i < kMaxWheelCount; ++i) {
-                    if (i < wheel_count) {
-                        truck_wheels[i]->register_for_channel(registerForChannel);
-                    } else {
-                        truck_wheels[i]->unregister_from_channel(unregisterFromChannel);
-                    }
-                }
-            }
-        }
+void Trailer::update_config(const scs_telemetry_configuration_t *const pConfiguration) {
+
+    if (registerForChannel && pConfiguration && pConfiguration->id) {
         if(!strcmp(pConfiguration->id, SCS_TELEMETRY_CONFIG_trailer)) {
             const scs_named_value_t *const wheel_count_attr = find_attribute(*pConfiguration,
                                                                              SCS_TELEMETRY_CONFIG_ATTRIBUTE_wheel_count,
@@ -87,6 +66,47 @@ void TelemetryState::update_config(const scs_telemetry_configuration_t *const pC
     }
 }
 
+nlohmann::json Trailer::getJson() {
+    nlohmann::json j;
+    for (const auto& channel : _trailer) { // XXX Move into Trailer
+        j.update(channel->getJson());
+    }
+    j["wheels"] = nlohmann::json::array();
+    for (int index = 0; index < no_trailer_wheels; ++index) { // XXX Move into Trailer
+        j["wheels"] += trailer_wheels[index]->getJson();
+    }
+    return j;
+}
+
+void TelemetryState::update_config(const scs_telemetry_configuration_t *const pConfiguration) {
+    _trailer_state.update_config(pConfiguration);
+    if(registerForChannel && pConfiguration && pConfiguration->id) {
+        if(!strcmp(pConfiguration->id, SCS_TELEMETRY_CONFIG_truck)) {
+            const scs_named_value_t *const wheel_count_attr = find_attribute(*pConfiguration,
+                                                                             SCS_TELEMETRY_CONFIG_ATTRIBUTE_wheel_count,
+                                                                             SCS_U32_NIL,
+                                                                             SCS_VALUE_TYPE_u32);
+            size_t wheel_count = wheel_count_attr ? wheel_count_attr->value.value_u32.value : 0;
+            if (wheel_count > kMaxWheelCount) {
+                wheel_count = kMaxWheelCount;
+            }
+            no_truck_wheels = wheel_count;
+            // Update registrations for wheel channels
+            if (registerForChannel && unregisterFromChannel) {
+                for (int i = 0; i < kMaxWheelCount; ++i) {
+                    if (i < wheel_count) {
+                        truck_wheels[i]->register_for_channel(registerForChannel);
+                    } else {
+                        truck_wheels[i]->unregister_from_channel(unregisterFromChannel);
+                    }
+                }
+            }
+        }
+
+
+    }
+}
+
 nlohmann::json TelemetryState::getJson() {
     nlohmann::json j;
     j["common"] = nlohmann::json::object();
@@ -97,18 +117,12 @@ nlohmann::json TelemetryState::getJson() {
     for (const auto& channel : _truck_state._truck) { // XXX Move into Truck
         j["truck"].update(channel->getJson());
     }
-    j["trailer"] = nlohmann::json::object();
-    for (const auto& channel : _trailer_state._trailer) { // XXX Move into Trailer
-        j["trailer"].update(channel->getJson());
-    }
     j["truck_wheels"] = nlohmann::json::array();
     for (int index = 0; index < no_truck_wheels; ++index) {  // XXX Move into Truck
         j["truck_wheels"] += truck_wheels[index]->getJson();
     }
-    j["trailer_wheels"] = nlohmann::json::array();
-    for (int index = 0; index < no_trailer_wheels; ++index) { // XXX Move into Trailer
-        j["trailer_wheels"] += trailer_wheels[index]->getJson();
-    }
+    j["trailer"] = _trailer_state.getJson();
+
     return j;
 }
 
