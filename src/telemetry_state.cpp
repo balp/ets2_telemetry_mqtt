@@ -63,5 +63,26 @@ void TelemetryState::update_config(const scs_telemetry_configuration_t *const pC
                 }
             }
         }
+        if(!strcmp(pConfiguration->id, SCS_TELEMETRY_CONFIG_trailer)) {
+            const scs_named_value_t *const wheel_count_attr = find_attribute(*pConfiguration,
+                                                                             SCS_TELEMETRY_CONFIG_ATTRIBUTE_wheel_count,
+                                                                             SCS_U32_NIL,
+                                                                             SCS_VALUE_TYPE_u32);
+            size_t wheel_count = wheel_count_attr ? wheel_count_attr->value.value_u32.value : 0;
+            if (wheel_count > kMaxWheelCount) {
+                wheel_count = kMaxWheelCount;
+            }
+            no_trailer_wheels = wheel_count;
+            // Update registrations for wheel channels
+            if (register_for_channel && unregister_from_channel) {
+                for (int i = 0; i < kMaxWheelCount; ++i) {
+                    if (i < wheel_count) {
+                        trailer_wheels[i]->register_for_channel(register_for_channel);
+                    } else {
+                        trailer_wheels[i]->unregister_from_channel(unregister_from_channel);
+                    }
+                }
+            }
+        }
     }
 }

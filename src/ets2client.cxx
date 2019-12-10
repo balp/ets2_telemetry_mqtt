@@ -82,11 +82,14 @@ SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
     for (const auto& channel : telemetry_p->_trailer_state._trailer) { // XXX Move into trailer_telemetry_state_t
         j["trailer"].update(channel->getJson());
     }
-    j["wheels"] = nlohmann::json::array();
+    j["truck_wheels"] = nlohmann::json::array();
     for (int index = 0; index < telemetry_p->no_truck_wheels; ++index) { // XXX Move to TelemetryState
-        j["wheels"] += telemetry_p->truck_wheels[index]->getJson();
+        j["truck_wheels"] += telemetry_p->truck_wheels[index]->getJson();
     }
-
+    j["trailer_wheels"] = nlohmann::json::array();
+    for (int index = 0; index < telemetry_p->no_trailer_wheels; ++index) { // XXX Move to TelemetryState
+        j["trailer_wheels"] += telemetry_p->trailer_wheels[index]->getJson();
+    }
     std::string json_string = j.dump();
     mqttHdl->publish(nullptr, "ets2/data", strlen(json_string.c_str()), json_string.c_str());
 }

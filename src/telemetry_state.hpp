@@ -20,7 +20,7 @@
 
 
 static const size_t kMaxHShifterSlots = 10;
-static const size_t kMaxWheelCount = 8;
+static const size_t kMaxWheelCount = 14;
 
 
 struct truck_telemetry_state_t {
@@ -132,13 +132,6 @@ struct trailer_telemetry_state_t {
                              std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wear_chassis),
                              std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wear_wheels),
                              std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_cargo_damage),
-                             // Wheels
-                             // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_susp_deflection
-                             // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_on_ground
-                             // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_substance
-                             // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_velocity
-                             // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_steering
-                             // SCS_TELEMETRY_TRAILER_CHANNEL_wheel_rotation
                      }) {}
 };
 
@@ -150,15 +143,15 @@ public:
     TruckWheel(int index) :
             index(index),
             channels({
-                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_susp_deflection),
-                            std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_on_ground),
-                            std::make_shared<TelematicUint32>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_substance),
-                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_velocity),
-                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_steering),
-                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_rotation),
-                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift),
-                            std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift_offset),
-                    }) {}
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_susp_deflection),
+                             std::make_shared<TelematicBool>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_on_ground),
+                             std::make_shared<TelematicUint32>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_substance),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_velocity),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_steering),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_rotation),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRUCK_CHANNEL_wheel_lift_offset),
+                     }) {}
 
     nlohmann::json getJson() {
         auto json = nlohmann::json::object();
@@ -168,23 +161,72 @@ public:
         }
         return json;
     }
+
     scs_result_t register_for_channel(scs_telemetry_register_for_channel_t register_for_channel) {
         scs_result_t result = SCS_RESULT_ok;
-        for(const auto& channel : channels) {
+        for (const auto &channel : channels) {
             auto tmp = channel->register_for_channel(register_for_channel, index);
-            if(tmp != SCS_RESULT_ok) { result = tmp; }
+            if (tmp != SCS_RESULT_ok) { result = tmp; }
         }
         return result;
     }
+
     virtual scs_result_t unregister_from_channel(scs_telemetry_unregister_from_channel_t unregister_from_channel) {
         scs_result_t result = SCS_RESULT_ok;
-        for(const auto& channel : channels) {
+        for (const auto &channel : channels) {
             auto tmp = channel->unregister_from_channel(unregister_from_channel, index);
-            if(tmp != SCS_RESULT_ok) { result = tmp; }
+            if (tmp != SCS_RESULT_ok) { result = tmp; }
         }
         return result;
     }
 };
+
+class TrailerWheel {
+private:
+    int index;
+    std::vector<std::shared_ptr<ITelematic>> channels;
+public:
+    TrailerWheel(int index) :
+            index(index),
+            channels({
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_susp_deflection),
+                             std::make_shared<TelematicBool>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_on_ground),
+                             std::make_shared<TelematicUint32>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_substance),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_velocity),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_steering),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_rotation),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_lift),
+                             std::make_shared<TelematicFloat>(SCS_TELEMETRY_TRAILER_CHANNEL_wheel_lift_offset),
+                     }) {}
+
+    nlohmann::json getJson() {
+        auto json = nlohmann::json::object();
+        json["index"] = index;
+        for (auto channel : channels) {
+            json.update(channel->getJson());
+        }
+        return json;
+    }
+
+    scs_result_t register_for_channel(scs_telemetry_register_for_channel_t register_for_channel) {
+        scs_result_t result = SCS_RESULT_ok;
+        for (const auto &channel : channels) {
+            auto tmp = channel->register_for_channel(register_for_channel, index);
+            if (tmp != SCS_RESULT_ok) { result = tmp; }
+        }
+        return result;
+    }
+
+    virtual scs_result_t unregister_from_channel(scs_telemetry_unregister_from_channel_t unregister_from_channel) {
+        scs_result_t result = SCS_RESULT_ok;
+        for (const auto &channel : channels) {
+            auto tmp = channel->unregister_from_channel(unregister_from_channel, index);
+            if (tmp != SCS_RESULT_ok) { result = tmp; }
+        }
+        return result;
+    }
+};
+
 
 class TelemetryState {
 private:
@@ -203,6 +245,8 @@ public:
     trailer_telemetry_state_t _trailer_state;
     size_t no_truck_wheels;
     std::vector<std::shared_ptr<TruckWheel>> truck_wheels;
+    size_t no_trailer_wheels;
+    std::vector<std::shared_ptr<TrailerWheel>> trailer_wheels;
 
     TelemetryState(scs_telemetry_register_for_channel_t register_for_channel,
                    scs_telemetry_unregister_from_channel_t unregister_from_channel,
@@ -228,10 +272,30 @@ public:
                           std::make_shared<TruckWheel>(5),
                           std::make_shared<TruckWheel>(6),
                           std::make_shared<TruckWheel>(7),
-                          std::make_shared<TruckWheel>(8)}) {}
+                          std::make_shared<TruckWheel>(8),
+                          std::make_shared<TruckWheel>(9),
+                          std::make_shared<TruckWheel>(10),
+                          std::make_shared<TruckWheel>(11),
+                          std::make_shared<TruckWheel>(12),
+                          std::make_shared<TruckWheel>(13)}),
+            no_trailer_wheels(0),
+            trailer_wheels({std::make_shared<TrailerWheel>(0),
+                            std::make_shared<TrailerWheel>(1),
+                            std::make_shared<TrailerWheel>(2),
+                            std::make_shared<TrailerWheel>(3),
+                            std::make_shared<TrailerWheel>(4),
+                            std::make_shared<TrailerWheel>(5),
+                            std::make_shared<TrailerWheel>(6),
+                            std::make_shared<TrailerWheel>(7),
+                            std::make_shared<TrailerWheel>(8),
+                            std::make_shared<TrailerWheel>(9),
+                            std::make_shared<TrailerWheel>(10),
+                            std::make_shared<TrailerWheel>(11),
+                            std::make_shared<TrailerWheel>(12),
+                            std::make_shared<TrailerWheel>(13)}) {}
 
 
-    void update_config(const scs_telemetry_configuration_t *const pConfiguration);
+    void update_config(const scs_telemetry_configuration_t *pConfiguration);
 };
 
 #endif //ETS2_MQTT_CONNECTOR_TELEMETRY_STATE_HPP
