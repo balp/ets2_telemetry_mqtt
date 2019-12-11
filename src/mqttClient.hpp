@@ -1,14 +1,14 @@
 #ifndef MQTTCLIENT_HPP
 #define MQTTCLIENT_HPP
 
-#include <stdio.h>
+#include <cstdio>
 #include <unistd.h>
 #include <mosquittopp.h>
 #include <iostream>
 #include <string>
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
+#include <cstring>
+#include <cassert>
+#include <cerrno>
 
 #include "scslog.hpp" // XXX Change to logging interface
 
@@ -25,7 +25,7 @@ namespace mqttclient {
         { MOSQ_ERR_PAYLOAD_SIZE, "if payloadlen is too large." },
         { MOSQ_ERR_ERRNO, "if a system call returned an error" },
         // { MOSQ_ERR_MALFORMED_UTF8, "if the topic is not valid UTF-8" },
-        { 0, 0}
+        { 0, nullptr}
     };
     const char* err2msg(int code) {
         for(int i = 0; error_codes[i].name ; ++i) {
@@ -37,14 +37,13 @@ namespace mqttclient {
         snprintf(msg, 29, "unknown: %d", code);
         return msg;
     }
-
-};
+}
 
 
 class Ets2MqttWrapper : public mosqpp::mosquittopp
 {
     private:
-        const char *_host = NULL;
+        const char *_host = nullptr;
         int _port = 1883;
         int _keepalive = 120;
         Logger& _logger;
@@ -61,23 +60,23 @@ class Ets2MqttWrapper : public mosqpp::mosquittopp
                 connect(_host, _port, _keepalive);
                 _logger.message("MQTT: Constructor, connect...");
             }
-        ~Ets2MqttWrapper() {};
+        ~Ets2MqttWrapper() override = default;;
 
-        void on_connect(int rc) {
+        void on_connect(int rc) override {
             std::clog << "Connected with code " << rc << std::endl;
             _logger.message("MQTT: on_connect");
             _logger.message(mqttclient::err2msg(rc));
             if (rc == 0)
             {
-                subscribe(NULL, "ets2/telematic");
+                subscribe(nullptr, "ets2/telematic");
             }
         };
-        void on_message(const struct mosquitto_message *message) {};
-        void on_subcribe(int mid, int qos_count, const int *granted_qos) {
+        void on_message(const struct mosquitto_message *message) override {};
+        void on_subscribe(int mid, int qos_count, const int *granted_qos) override {
             _logger.message("MQTT Subscribed");
             std::clog << "Subscription succeeded." << std::endl;
         };
-        int publish(int *mid, const char *topic, int payloadlen=0, const void *payload=NULL, int qos=0, bool retain=false) {
+        int publish_mqtt(int *mid, const char *topic, size_t payloadlen= 0, const void *payload= nullptr, int qos= 0, bool retain= false) {
             int res =  mosqpp::mosquittopp::publish(mid, topic, payloadlen, payload, qos, retain);
             if(MOSQ_ERR_SUCCESS != res) {
                 _logger.error("MQTT Publish error");

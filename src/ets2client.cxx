@@ -6,26 +6,21 @@
 
 #include <string>
 #include <vector>
-#include <memory>
 #include <cstring>
 
-#include "json.hpp"
+#include <json.hpp>
+#include <eurotrucks2/scssdk_eut2.h>
 
-#include "eurotrucks2/scssdk_eut2.h"
-#include "eurotrucks2/scssdk_telemetry_eut2.h"
-#include "amtrucks/scssdk_ats.h"
-#include "amtrucks/scssdk_telemetry_ats.h"
-
-#include "mqttClient.hpp"
 #include "telematic.hpp"
 #include "scslog.hpp"
 #include "telemetry_state.hpp"
 #include "simulation_timestamp.hpp"
+#include "mqttClient.hpp"
 
 #define UNUSED(x)
 
 scs_timestamp_t last_timestamp = static_cast<scs_timestamp_t>(-1);
-static Logger logger;
+static Logger logger; // NOLINT(cert-err58-cpp)
 static Ets2MqttWrapper *mqttHdl = nullptr;
 scs_log_t game_log = nullptr;
 static bool output_paused = true;
@@ -37,7 +32,7 @@ struct ContextData {
 
 SCSAPI_VOID telemetry_frame_start(const scs_event_t UNUSED(event),
                                   const void *const event_info,
-                                  const scs_context_t context) {
+                                  const scs_context_t context) { // NOLINT(misc-misplaced-const)
     const auto *const info = static_cast<const scs_telemetry_frame_start_t *>(event_info);
     auto* contextData = static_cast<ContextData *>(context);
     if (last_timestamp == static_cast<scs_timestamp_t>(-1)) {
@@ -55,7 +50,7 @@ SCSAPI_VOID telemetry_frame_start(const scs_event_t UNUSED(event),
 
 SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
                                 const void *const UNUSED(event_info),
-                                const scs_context_t context) {
+                                const scs_context_t context) { // NOLINT(misc-misplaced-const)
     if (output_paused) {
         return;
     }
@@ -64,13 +59,16 @@ SCSAPI_VOID telemetry_frame_end(const scs_event_t UNUSED(event),
     }
     auto* contextData = static_cast<ContextData *>(context);
     std::string json_string = contextData->telemetry_p->getJson().dump();
-    mqttHdl->publish(nullptr, "ets2/data", strlen(json_string.c_str()), json_string.c_str());
+    mqttHdl->publish_mqtt(nullptr, "ets2/data", strlen(json_string.c_str()), json_string.c_str());
     std::string json_timestamp_string = contextData->timestamp_p->getJson().dump();
-    mqttHdl->publish(nullptr, "ets2/timestamp", strlen(json_timestamp_string.c_str()), json_timestamp_string.c_str());
+    mqttHdl->publish_mqtt(nullptr, "ets2/timestamp", strlen(json_timestamp_string.c_str()),
+                          json_timestamp_string.c_str());
 }
 
 static nlohmann::json &setNamedValueToJson(nlohmann::json &j, const scs_named_value_t *current);
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "misc-misplaced-const"
 SCSAPI_VOID telemetry_pause(const scs_event_t event,
                             const void *const UNUSED(event_info),
                             const scs_context_t UNUSED(context)) {
@@ -83,12 +81,13 @@ SCSAPI_VOID telemetry_pause(const scs_event_t event,
     } else {
     }
     std::string json_string = j.dump();
-    mqttHdl->publish(nullptr, "ets2/info", strlen(json_string.c_str()), json_string.c_str(), 0, true);
+    mqttHdl->publish_mqtt(nullptr, "ets2/info", strlen(json_string.c_str()), json_string.c_str(), 0, true);
 }
+#pragma clang diagnostic pop
 
-SCSAPI_VOID telemetry_configuration(const scs_event_t event,
+SCSAPI_VOID telemetry_configuration(const scs_event_t UNUSED(event),
                                     const void *const event_info,
-                                    const scs_context_t context) {
+                                    const scs_context_t context) { // NOLINT(misc-misplaced-const)
     const auto *const info = static_cast<const scs_telemetry_configuration_t *>(event_info);
     auto* contextData = static_cast<ContextData *>(context);
     contextData->telemetry_p->update_config(info);
@@ -98,7 +97,7 @@ SCSAPI_VOID telemetry_configuration(const scs_event_t event,
     }
     std::string topic = std::string("ets2/info/config/") + info->id;
     std::string json_string = j.dump();
-    mqttHdl->publish(nullptr, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
+    mqttHdl->publish_mqtt(nullptr, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
 }
 
 
@@ -168,7 +167,9 @@ static nlohmann::json &setNamedValueToJson(nlohmann::json &j, const scs_named_va
     return j;
 }
 
-SCSAPI_VOID telemetry_gameplay(const scs_event_t event,
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "misc-misplaced-const"
+SCSAPI_VOID telemetry_gameplay(const scs_event_t UNUSED(event),
                                const void *const event_info,
                                const scs_context_t UNUSED(context)) {
     const auto *const info = static_cast<const scs_telemetry_gameplay_event_t *>(event_info);
@@ -178,7 +179,7 @@ SCSAPI_VOID telemetry_gameplay(const scs_event_t event,
     }
     std::string topic = std::string("ets2/info/gameplay/") + info->id;
     std::string json_string = j.dump();
-    mqttHdl->publish(nullptr, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
+    mqttHdl->publish_mqtt(nullptr, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
 }
 
 
@@ -190,20 +191,20 @@ void publish_game_info(const scs_telemetry_init_params_v100_t *const params) {
     j["name"] = params->common.game_name;
     j["id"] = params->common.game_id;
     j["raw_version"] = params->common.game_version;
-    j["version"] = {{"major", SCS_GET_MAJOR_VERSION(params->common.game_version)},
-                    {"minor", SCS_GET_MINOR_VERSION(params->common.game_version)}};
+    j["version"] = {{"major", SCS_GET_MAJOR_VERSION(params->common.game_version)}, // NOLINT(hicpp-signed-bitwise) [Part of scs interface]
+                    {"minor", SCS_GET_MINOR_VERSION(params->common.game_version)}}; // NOLINT(hicpp-signed-bitwise) [Part of scs interface]
 
 
     std::string json_string = j.dump();
-    mqttHdl->publish(nullptr, "ets2/game", strlen(json_string.c_str()), json_string.c_str(), 0, true);
+    mqttHdl->publish_mqtt(nullptr, "ets2/game", strlen(json_string.c_str()), json_string.c_str(), 0, true);
 }
 
 SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
                                  const scs_telemetry_init_params_t *const params) {
-    if (version != SCS_TELEMETRY_VERSION_1_01) {
+    if (version != SCS_TELEMETRY_VERSION_1_01) { // NOLINT(hicpp-signed-bitwise) [Part of scs interface]
         return SCS_RESULT_unsupported;
     }
-    const auto *const version_params = static_cast<const scs_telemetry_init_params_v101_t *>(params);
+    const auto *const version_params = reinterpret_cast<const scs_telemetry_init_params_v101_t *>(params);
     game_log = version_params->common.log;
     logger.setGameLog(game_log);
     logger.message("Initializing telemetry mqtt gateway");
@@ -219,7 +220,7 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
     }
     logger.message("MQTT Connected");
     publish_game_info(version_params);
-    ContextData* contextData = new ContextData();
+    auto contextData = new ContextData();
     contextData->telemetry_p = new TelemetryState(version_params->register_for_channel,
             version_params->unregister_from_channel,
             logger);

@@ -7,25 +7,25 @@ extern scs_log_t game_log;
 
 class Logger {
     private:
-        scs_log_t _game_log = NULL;
+        scs_log_t _game_log;
     public:
-        Logger() {}
-        void setGameLog(scs_log_t game_log) {
-            _game_log = game_log;
+        Logger() = default;
+        void setGameLog(scs_log_t gameLog) {
+            _game_log = gameLog;
         }
         void message(const char* msg) {
-            if(game_log) {
-                game_log(SCS_LOG_TYPE_message, msg);
+            if(_game_log) {
+                _game_log(SCS_LOG_TYPE_message, msg);
             }
         }
         void warning(const char* msg) {
-            if(game_log) {
-                game_log(SCS_LOG_TYPE_warning, msg);
+            if(_game_log) {
+                _game_log(SCS_LOG_TYPE_warning, msg);
             }
         }
         void error(const char* msg) {
-            if(game_log) {
-                game_log(SCS_LOG_TYPE_error, msg);
+            if(_game_log) {
+                _game_log(SCS_LOG_TYPE_error, msg);
             }
         }
 };

@@ -3,20 +3,12 @@
 //
 
 #include <cstring>
-#include <memory>
-#include <vector>
-#include <string>
-
 #include "scslog.hpp"
 #include "telematic.hpp"
 
-#include "amtrucks/scssdk_telemetry_ats.h"
-#include "amtrucks/scssdk_ats.h"
 #include "eurotrucks2/scssdk_telemetry_eut2.h"
-#include "eurotrucks2/scssdk_eut2.h"
 #include "telemetry_state.hpp"
 
-#include "scslog.hpp" // XXX Change to logging interface
 
 /**
  * @brief Finds attribute with specified name in the configuration structure.
@@ -131,7 +123,7 @@ nlohmann::json Truck::getJson() {
         j.update(channel->getJson());
     }
     j["wheels"] = nlohmann::json::array();
-    for (int index = 0; index < no_truck_wheels; ++index) {  // XXX Move into Truck
+    for (int index = 0; index < no_truck_wheels; ++index) {
         j["wheels"] += truck_wheels[index]->getJson();
     }
     return j;
