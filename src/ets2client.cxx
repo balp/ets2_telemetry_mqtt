@@ -81,7 +81,7 @@ SCSAPI_VOID telemetry_pause(const scs_event_t event,
     } else {
     }
     std::string json_string = j.dump();
-    mqttHdl->publish_mqtt(nullptr, "ets2/info", strlen(json_string.c_str()), json_string.c_str(), 0, true);
+    mqttHdl->publish_mqtt(nullptr, "ets2/info", strlen(json_string.c_str()), json_string.c_str());
 }
 #pragma clang diagnostic pop
 
@@ -179,7 +179,9 @@ SCSAPI_VOID telemetry_gameplay(const scs_event_t UNUSED(event),
     }
     std::string topic = std::string("ets2/info/gameplay/") + info->id;
     std::string json_string = j.dump();
-    mqttHdl->publish_mqtt(nullptr, topic.c_str(), strlen(json_string.c_str()), json_string.c_str(), 0, true);
+    mqttHdl->publish_mqtt(nullptr, topic.c_str(),
+            strlen(json_string.c_str()),
+            json_string.c_str());
 }
 
 
