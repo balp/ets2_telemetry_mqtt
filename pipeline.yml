@@ -15,7 +15,7 @@ resources:
       repository: ((docker-hub-username))/ets2_telemetry_mqtt-build-tools
 
 jobs:
-  - name: publish
+  - name: "publish build image"
     public: true
     serial: true
     plan:
@@ -25,31 +25,13 @@ jobs:
         params:
           build: ets2_telemetry_mqtt/build-tools
 
-  - name: job
+  - name: "Linux plugin job"
     public: true
     plan:
       - in_parallel:
         - get: ets2_telemetry_mqtt-build-tools
           trigger: true
         - get: ets2_telemetry_mqtt
-      - task: cmake-config
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: ((docker-hub-username))/ets2_telemetry_mqtt-build-tools
-          inputs:
-            - name: ets2_telemetry_mqtt
-          outputs:
-            - name: build_alpine_clang
-          run:
-            dir: build_alpine_clang
-            path: cmake
-            args: ["-G", "Ninja", "-D", "CMAKE_C_COMPILER=clang", "-D", "CMAKE_CXX_COMPILER=clang++", "-D",
-                   "CMAKE_BUILD_TYPE=Release", "../ets2_telemetry_mqtt"]
-          params:
-            NAME: ((docker-hub-username))
       - task: cmake-build
         config:
           platform: linux
@@ -58,30 +40,11 @@ jobs:
             source:
               repository: ((docker-hub-username))/ets2_telemetry_mqtt-build-tools
           inputs:
-            - name: build_alpine_clang
             - name: ets2_telemetry_mqtt
           outputs:
             - name: build_alpine_clang
           run:
             dir: build_alpine_clang
-            path: cmake
-            args: ["--build", "."]
-          params:
-            NAME: ((docker-hub-username))
-      - task: ctest
-        config:
-          platform: linux
-          image_resource:
-            type: registry-image
-            source:
-              repository: ((docker-hub-username))/ets2_telemetry_mqtt-build-tools
-          inputs:
-            - name: build_alpine_clang
-          outputs:
-            - name: build_alpine_clang
-          run:
-            dir: build_alpine_clang
-            path: ctest
-            args: ["."]
+            path: ../ets2_telemetry_mqtt/ci_build.sh
           params:
             NAME: ((docker-hub-username))
