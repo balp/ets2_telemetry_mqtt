@@ -53,3 +53,6 @@ Deploy a new pipeline:
 Run a CI build on your local code, with out committing:
 
      fly -t laurana-main execute --config pipeline.yml --input ets2_telemetry_mqtt=. --config tasks/cmake-linux.yml -l secrets.yml
+
+     fly -t laurana-main execute --config pipeline.yml --input html_docs=/tmp/html_docs --input ets2_telemetry_mqtt=. --input build_alpine_clang=/tmp/build_alpine_clang  --input test_alpine_clang=/tmp/test_alpine_clang --config tasks/make_version.yml -l secrets.yml --output version=/tmp/version
+
