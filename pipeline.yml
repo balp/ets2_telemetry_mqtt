@@ -35,18 +35,21 @@ jobs:
     plan:
       - get: ets2_telemetry_mqtt
         trigger: true
-      - put: ets2_telemetry_mqtt-build-tools
-        params:
-          build: ets2_telemetry_mqtt/build-tools
-      - put: bump_git
-        params:
-          build: ets2_telemetry_mqtt/bump_git
+      - in_parallel:
+        - put: ets2_telemetry_mqtt-build-tools
+          params:
+            build: ets2_telemetry_mqtt/build-tools
+        - put: bump_git
+          params:
+            build: ets2_telemetry_mqtt/bump_git
 
   - name: "Linux plugin job"
     public: true
     plan:
       - in_parallel:
         - get: ets2_telemetry_mqtt-build-tools
+          trigger: true
+        - get: bump_git
           trigger: true
         - get: ets2_telemetry_mqtt
       - in_parallel:
