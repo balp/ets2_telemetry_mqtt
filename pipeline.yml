@@ -20,6 +20,7 @@ jobs:
     serial: true
     plan:
       - get: ets2_telemetry_mqtt
+        trigger: true
       - put: ets2_telemetry_mqtt-build-tools
         params:
           build: ets2_telemetry_mqtt/build-tools
@@ -29,8 +30,8 @@ jobs:
     plan:
       - in_parallel:
         - get: ets2_telemetry_mqtt-build-tools
-        - get: ets2_telemetry_mqtt
           trigger: true
+        - get: ets2_telemetry_mqtt
       - task: cmake-config
         config:
           platform: linux
