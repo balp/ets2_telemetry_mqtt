@@ -33,4 +33,4 @@ jobs:
           trigger: true
         - get: ets2_telemetry_mqtt
       - task: cmake-build
-        file: tasks/cmake-linux.yml
+        file: ets2_telemetry_mqtt/tasks/cmake-linux.yml
