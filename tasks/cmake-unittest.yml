@@ -11,11 +11,11 @@ inputs:
   - name: ets2_telemetry_mqtt
 
 outputs:
-  - name: build_alpine_clang
+  - name: test_alpine_clang
 
 
 run:
-  dir: build_alpine_clang
+  dir: test_alpine_clang
   path: "../ets2_telemetry_mqtt/tasks/ci_unittest.sh"
   args: []
 

@@ -14,6 +14,14 @@ resources:
       password: ((docker-hub-password))
       repository: ((docker-hub-username))/ets2_telemetry_mqtt-build-tools
 
+  - name: ets2_telemetry_mqtt_release
+    type: github-release
+    source:
+      owner: ((git-hub-owner))
+      repository: ((git-hub-repo))
+      access_token: ((git-hub-token))
+
+
 jobs:
   - name: "publish build image"
     public: true
@@ -39,3 +47,12 @@ jobs:
           file: ets2_telemetry_mqtt/tasks/cmake-unittest.yml
         - task: cmake-doc
           file: ets2_telemetry_mqtt/tasks/cmake-doc.yml
+      - task: make_version
+        file: ets2_telemetry_mqtt/tasks/make_version.yml
+      - put: ets2_telemetry_mqtt_release
+        params:
+          name: version/name
+          tag: version/tag
+          body: version/body
+          globs:
+            - version/files/*

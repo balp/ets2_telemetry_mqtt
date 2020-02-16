@@ -9,13 +9,15 @@ image_resource:
 
 inputs:
   - name: ets2_telemetry_mqtt
+  - name: html_docs
+  - name: build_alpine_clang
+  - name: test_alpine_clang
 
 outputs:
-  - name: html_docs
-    path: html_docs/html
+  - name: version
+
 
 run:
-  dir: html_docs
-  path: "../ets2_telemetry_mqtt/tasks/ci_doc.sh"
+  dir: version
+  path: "../ets2_telemetry_mqtt/tasks/make_version.sh"
   args: []
-
