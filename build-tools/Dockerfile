@@ -12,10 +12,5 @@ RUN apk add --no-cache \
         openssl-dev \
         mosquitto-dev \
         graphviz \
-        python3 \
-        python3-dev \
-        doxygen \
-      && pip3 install --no-cache-dir bumpversion \
-      && rm -rf /var/cache/* \
-      && rm -rf /root/.cache/*
+        doxygen
 
