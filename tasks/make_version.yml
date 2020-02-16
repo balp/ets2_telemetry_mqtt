@@ -1,0 +1,23 @@
+---
+
+platform: linux
+
+image_resource:
+  type: registry-image
+  source:
+    repository: balp/bump_git
+
+inputs:
+  - name: ets2_telemetry_mqtt
+  - name: html_docs
+  - name: build_alpine_clang
+  - name: test_alpine_clang
+
+outputs:
+  - name: version
+
+
+run:
+  dir: version
+  path: "../ets2_telemetry_mqtt/tasks/make_version.sh"
+  args: []

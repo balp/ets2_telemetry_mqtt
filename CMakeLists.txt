@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.9.0)
+cmake_minimum_required (VERSION 3.13.0)
 project (ets2_mqtt_connector)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 enable_testing()
@@ -38,8 +38,8 @@ endif()
 add_compile_options("$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/MDd>")
 add_compile_options("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Debug>>:-O0;-ggdb3>")
 add_compile_options("$<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:Debug>>:-O0;-ggdb3;-fprofile-instr-generate;-fcoverage-mapping>")
-add_compile_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
-add_link_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
+# add_compile_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
+# add_link_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
 
 ExternalProject_Add(catch2
         PREFIX ${CMAKE_BINARY_DIR}/catch2
@@ -132,7 +132,7 @@ target_include_directories(ets2clienttest
 )
 add_dependencies(ets2clienttest catch2 json scs_sdk)
 add_test(NAME ets2client
-      COMMAND ets2clienttest
+      COMMAND ets2clienttest --reporter xml --out ets2clienttest.xml
 )
 
 find_package(Doxygen

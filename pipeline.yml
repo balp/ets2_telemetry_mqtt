@@ -1,0 +1,76 @@
+---
+resources:
+  - name: ets2_telemetry_mqtt
+    type: git
+    source:
+      uri: https://github.com/balp/ets2_telemetry_mqtt.git
+      branch: master
+
+  - name: ets2_telemetry_mqtt-build-tools
+    type: docker-image
+    source:
+      email: ((docker-hub-email))
+      username: ((docker-hub-username))
+      password: ((docker-hub-password))
+      repository: ((docker-hub-username))/ets2_telemetry_mqtt-build-tools
+
+  - name: ets2_telemetry_mqtt_release
+    type: github-release
+    source:
+      owner: ((git-hub-owner))
+      repository: ((git-hub-repo))
+      access_token: ((git-hub-token))
+
+  - name: bump_git
+    type: docker-image
+    source:
+      email: ((docker-hub-email))
+      username: ((docker-hub-username))
+      password: ((docker-hub-password))
+      repository: ((docker-hub-username))/bump_git
+jobs:
+  - name: "publish ets2_telemetry_mqtt"
+    public: true
+    serial: true
+    plan:
+      - get: ets2_telemetry_mqtt
+        trigger: true
+      - put: ets2_telemetry_mqtt-build-tools
+        params:
+          build: ets2_telemetry_mqtt/build-tools
+
+  - name: "publish bump_git"
+    public: true
+    serial: true
+    plan:
+      - get: ets2_telemetry_mqtt
+        trigger: true
+      - put: bump_git
+        params:
+          build: ets2_telemetry_mqtt/bump_git
+
+  - name: "Linux plugin job"
+    public: true
+    plan:
+      - in_parallel:
+        - get: ets2_telemetry_mqtt-build-tools
+          trigger: true
+        - get: bump_git
+          trigger: true
+        - get: ets2_telemetry_mqtt
+      - in_parallel:
+        - task: cmake-build
+          file: ets2_telemetry_mqtt/tasks/cmake-build.yml
+        - task: cmake-unittest
+          file: ets2_telemetry_mqtt/tasks/cmake-unittest.yml
+        - task: cmake-doc
+          file: ets2_telemetry_mqtt/tasks/cmake-doc.yml
+      - task: make_version
+        file: ets2_telemetry_mqtt/tasks/make_version.yml
+      - put: ets2_telemetry_mqtt_release
+        params:
+          name: version/name
+          tag: version/tag
+          body: version/body
+          globs:
+            - version/files/*

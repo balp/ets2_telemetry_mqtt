@@ -21,3 +21,38 @@ with ets2/ the following challels are used at the moment:
 * ets2/info/config/hshifter   -
 * ets2/info/config/truck      -
 * ets2/info/config/trailer    -
+
+
+Concourse - CI
+--------------
+Install local version:
+
+    wget https://concourse-ci.org/docker-compose.yml
+    docker-compose up -d
+
+Possibly change config a bit, before the up command.
+
+    CONCOURSE_ADD_LOCAL_USER: <<username>>:<<password>>
+    CONCOURSE_MAIN_TEAM_LOCAL_USER: <<username>>
+
+
+Login:
+
+    fly --target laurana-main login --team-name main --concourse-url http://localhost:8080/
+
+
+zsh command line completion:
+
+    source <(fly completion --shell=zsh)
+
+Deploy a new pipeline:
+
+    fly -t laurana-main set-pipeline --pipeline ets2_telemetry_mqtt --config pipeline.yml -l secrets.yml
+
+
+Run a CI build on your local code, with out committing:
+
+     fly -t laurana-main execute --config pipeline.yml --input ets2_telemetry_mqtt=. --config tasks/cmake-linux.yml -l secrets.yml
+
+     fly -t laurana-main execute --config pipeline.yml --input html_docs=/tmp/html_docs --input ets2_telemetry_mqtt=. --input build_alpine_clang=/tmp/build_alpine_clang  --input test_alpine_clang=/tmp/test_alpine_clang --config tasks/make_version.yml -l secrets.yml --output version=/tmp/version
+
