@@ -5,7 +5,7 @@ platform: linux
 image_resource:
   type: registry-image
   source:
-    repository: balp/ets2_telemetry_mqtt-build-tools
+    repository: balp/bump_git
 
 inputs:
   - name: ets2_telemetry_mqtt

@@ -21,9 +21,15 @@ resources:
       repository: ((git-hub-repo))
       access_token: ((git-hub-token))
 
+  - name: bump_git
+    type: github-release
+    source:
+      owner: ((git-hub-owner))
+      repository: bump_git
+      access_token: ((git-hub-token))
 
 jobs:
-  - name: "publish build image"
+  - name: "publish docker images"
     public: true
     serial: true
     plan:
@@ -32,6 +38,9 @@ jobs:
       - put: ets2_telemetry_mqtt-build-tools
         params:
           build: ets2_telemetry_mqtt/build-tools
+      - put: bump_git
+        params:
+          build: ets2_telemetry_mqtt/bump_git
 
   - name: "Linux plugin job"
     public: true
