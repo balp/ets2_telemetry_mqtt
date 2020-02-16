@@ -22,26 +22,32 @@ resources:
       access_token: ((git-hub-token))
 
   - name: bump_git
-    type: github-release
+    type: docker-image
     source:
-      owner: ((git-hub-owner))
-      repository: bump_git
-      access_token: ((git-hub-token))
-
+      email: ((docker-hub-email))
+      username: ((docker-hub-username))
+      password: ((docker-hub-password))
+      repository: ((docker-hub-username))/bump_git
 jobs:
-  - name: "publish docker images"
+  - name: "publish ets2_telemetry_mqtt"
     public: true
     serial: true
     plan:
       - get: ets2_telemetry_mqtt
         trigger: true
-      - in_parallel:
-        - put: ets2_telemetry_mqtt-build-tools
-          params:
-            build: ets2_telemetry_mqtt/build-tools
-        - put: bump_git
-          params:
-            build: ets2_telemetry_mqtt/bump_git
+      - put: ets2_telemetry_mqtt-build-tools
+        params:
+          build: ets2_telemetry_mqtt/build-tools
+
+  - name: "publish bump_git"
+    public: true
+    serial: true
+    plan:
+      - get: ets2_telemetry_mqtt
+        trigger: true
+      - put: bump_git
+        params:
+          build: ets2_telemetry_mqtt/bump_git
 
   - name: "Linux plugin job"
     public: true
@@ -50,7 +56,6 @@ jobs:
         - get: ets2_telemetry_mqtt-build-tools
           trigger: true
         - get: bump_git
-          trigger: true
         - get: ets2_telemetry_mqtt
       - in_parallel:
         - task: cmake-build
