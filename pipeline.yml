@@ -34,3 +34,5 @@ jobs:
         - get: ets2_telemetry_mqtt
       - task: cmake-build
         file: ets2_telemetry_mqtt/tasks/cmake-linux.yml
+        params:
+          docker-hub-username: ((docker-hub-username))

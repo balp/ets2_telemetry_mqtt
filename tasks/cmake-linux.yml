@@ -19,4 +19,4 @@ run:
   args: []
 
 params:
-  NAME: ((docker-hub-username))
+  docker-hub-username: ((docker-hub-username))
