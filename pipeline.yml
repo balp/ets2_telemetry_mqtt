@@ -32,7 +32,10 @@ jobs:
         - get: ets2_telemetry_mqtt-build-tools
           trigger: true
         - get: ets2_telemetry_mqtt
-      - task: cmake-build
-        file: ets2_telemetry_mqtt/tasks/cmake-linux.yml
-        params:
-          docker-hub-username: ((docker-hub-username))
+      - in_parallel:
+        - task: cmake-build
+          file: ets2_telemetry_mqtt/tasks/cmake-build.yml
+        - task: cmake-unittest
+          file: ets2_telemetry_mqtt/tasks/cmake-unittest.yml
+        - task: cmake-doc
+          file: ets2_telemetry_mqtt/tasks/cmake-doc.yml

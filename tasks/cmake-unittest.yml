@@ -13,8 +13,9 @@ inputs:
 outputs:
   - name: build_alpine_clang
 
+
 run:
   dir: build_alpine_clang
-  path: "../ets2_telemetry_mqtt/ci_build.sh"
+  path: "../ets2_telemetry_mqtt/tasks/ci_unittest.sh"
   args: []
 
