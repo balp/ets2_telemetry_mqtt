@@ -18,57 +18,7 @@
 #include "mqttClient.hpp"
 
 #define UNUSED(x)
-#ifdef _WIN32
-FILE *log_file = NULL;
 
-bool init_log(void)
-{
-    if (log_file) {
-        return true;
-    }
-    log_file = fopen("telemetry_position.log", "wt");
-    if (! log_file) {
-        return false;
-    }
-    fprintf(log_file, "Log opened\n");
-    return true;
-}
-
-void finish_log(void)
-{
-    if (! log_file) {
-        return;
-    }
-    fprintf(log_file, "Log ended\n");
-    fclose(log_file);
-    log_file = NULL;
-}
-
-void log_print(const char *const text, ...)
-{
-    if (! log_file) {
-        return;
-    }
-    va_list args;
-            va_start(args, text);
-    vfprintf(log_file, text, args);
-            va_end(args);
-}
-
-void log_line(const char *const text, ...)
-{
-    if (! log_file) {
-        return;
-    }
-    va_list args;
-            va_start(args, text);
-    vfprintf(log_file, text, args);
-    fprintf(log_file, "\n");
-            va_end(args);
-}
-
-
-#endif
 scs_timestamp_t last_timestamp = static_cast<scs_timestamp_t>(-1);
 static Logger logger; // NOLINT(cert-err58-cpp)
 static Ets2MqttWrapper *mqttHdl = nullptr;
@@ -257,17 +207,15 @@ SCSAPI_RESULT scs_telemetry_init(const scs_u32_t version,
         return SCS_RESULT_unsupported;
     }
     const auto *const version_params = reinterpret_cast<const scs_telemetry_init_params_v101_t *>(params);
-#ifdef _WIN32
-    if (! init_log()) {
-        version_params->common.log(SCS_LOG_TYPE_error, "Unable to initialize the log file");
-        return SCS_RESULT_generic_error;
-    }
-#endif
     game_log = version_params->common.log;
     logger.setGameLog(game_log);
-    logger.message("Initializing telemetry mqtt gateway");
+    logger.message("ets2client: scs_telemetry_init");
+
     try {
-        mqttHdl = new Ets2MqttWrapper("ETS2-MQTT", "127.0.0.1", 1883, logger);
+        logger.message("Initializing telemetry mqtt gateway");
+        const char *hostname = "192.168.1.20";
+        logger.message(hostname);
+        mqttHdl = new Ets2MqttWrapper("ETS2-MQTT", hostname, 1883, logger);
     }
     catch (...) {
         mqttHdl = nullptr;
@@ -310,9 +258,6 @@ BOOL APIENTRY DllMain(
     DWORD reason_for_call,
     LPVOID reseved)
 {
-    if (reason_for_call == DLL_PROCESS_DETACH) {
-        finish_log();
-    }
     return TRUE;
 }
 #endif

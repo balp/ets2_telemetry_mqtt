@@ -20,10 +20,18 @@ FetchContent_MakeAvailable(Catch2)
 
 find_package(Mosquitto)
 if (NOT ${MOSQUITTO_FOUND})
+    option(WITH_STATIC_LIBRARIES "Use static mosquito lib?" ON)
+    option(WITH_LIB_CPP "Build C++ library?" ON)
     option(WITH_TLS "Include SSL/TLS support?" OFF)
     option(WITH_TLS_PSK "Include TLS-PSK support (requires WITH_TLS)?" OFF)
     option(WITH_EC "Include Elliptic Curve support (requires WITH_TLS)?" OFF)
     option(WITH_THREADING "Include client library threading support?" OFF)
+
+    option(WITH_CLIENTS "Build clients?" OFF)
+    option(WITH_BROKER "Build broker?" OFF)
+    option(WITH_APPS "Build apps?" OFF)
+    option(WITH_PLUGINS "Build plugins?" OFF)
+    option(DOCUMENTATION "Build documentation?" OFF)
 
     FetchContent_Declare(
             mosquitto
@@ -72,8 +80,8 @@ add_library(ets2telemery MODULE
 
 
 target_link_libraries(ets2telemery
-        PUBLIC mosquitto
-        PUBLIC mosquittopp
+        PRIVATE libmosquitto_static
+        PRIVATE mosquittopp_static
         PRIVATE scs_sdk
         PRIVATE nlohmann_json
         )
