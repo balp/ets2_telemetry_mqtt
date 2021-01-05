@@ -7,7 +7,7 @@
 
 
 #include <scssdk.h>
-#include <json.hpp>
+#include <nlohmann/json.hpp>
 
 class SimulationTimestamp {
 public:

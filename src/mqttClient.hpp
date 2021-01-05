@@ -2,7 +2,9 @@
 #define MQTTCLIENT_HPP
 
 #include <cstdio>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <mosquittopp.h>
 #include <iostream>
 #include <string>
@@ -83,8 +85,8 @@ class Ets2MqttWrapper : public mosqpp::mosquittopp
                 _logger.message(mqttclient::err2msg(res));
             }
             if(MOSQ_ERR_ERRNO == res) {
-                char buffer[50];
-                strerror_r(errno, buffer, 50);
+                char buffer[150];
+                strerror_s(buffer, 150, errno);
                 _logger.message(buffer);
                 reconnect();
             }

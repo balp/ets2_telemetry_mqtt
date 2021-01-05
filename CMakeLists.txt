@@ -1,150 +1,150 @@
-cmake_minimum_required (VERSION 3.13.0)
-project (ets2_mqtt_connector)
+cmake_minimum_required(VERSION 3.14)
+project(ets2_mqtt_connector)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 enable_testing()
+include(FetchContent)
 include(ExternalProject)
 
-configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "Build step for googletest failed: ${result}")
-endif()
-
-# Prevent overriding the parent project's compiler/linker
-# settings on Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-# Add googletest directly to our build. This defines
-# the gtest and gtest_main targets.
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-                 EXCLUDE_FROM_ALL)
-
-# The gtest/gtest_main targets carry header search path
-# dependencies automatically when using CMake 2.8.11 or
-# later. Otherwise we have to add them here ourselves.
-if (CMAKE_VERSION VERSION_LESS 2.8.11)
-  include_directories("${gtest_SOURCE_DIR}/include")
-endif()
-
-add_compile_options("$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/MDd>")
-add_compile_options("$<$<AND:$<CXX_COMPILER_ID:GNU>,$<CONFIG:Debug>>:-O0;-ggdb3>")
-add_compile_options("$<$<AND:$<CXX_COMPILER_ID:Clang>,$<CONFIG:Debug>>:-O0;-ggdb3;-fprofile-instr-generate;-fcoverage-mapping>")
-# add_compile_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
-# add_link_options("$<$<CXX_COMPILER_ID:Clang>:-fprofile-instr-generate;-fcoverage-mapping>")
-
-ExternalProject_Add(catch2
-        PREFIX ${CMAKE_BINARY_DIR}/catch2
-        URL https://raw.githubusercontent.com/catchorg/Catch2/master/single_include/catch2/catch.hpp
-        DOWNLOAD_NO_EXTRACT 1
-        CONFIGURE_COMMAND ""
-        BUILD_COMMAND ""
-        INSTALL_COMMAND ""
+FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG release-1.10.0
 )
-include_directories(${CMAKE_BINARY_DIR}/catch2/src)
+FetchContent_MakeAvailable(googletest)
 
+FetchContent_Declare(
+        Catch2
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v2.13.1)
+FetchContent_MakeAvailable(Catch2)
 
 find_package(Mosquitto)
-if(NOT ${MOSQITTO_FOUND})
-    set(EXTERNAL_MOSQUITTO_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external/mosquitto)
-    ExternalProject_Add(mosquitto
-        PREFIX ${EXTERNAL_MOSQUITTO_INSTALL_LOCATION}
-        GIT_REPOSITORY https://github.com/eclipse/mosquitto.git
-        GIT_TAG v1.4.15
-        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_MOSQUITTO_INSTALL_LOCATION}
-        TIMEOUT 10
-        LOG_DOWNLOAD ON
-        )
-    add_dependencies(mqttClient mosquitto)
-endif()
+if (NOT ${MOSQUITTO_FOUND})
+    option(WITH_TLS "Include SSL/TLS support?" OFF)
+    option(WITH_TLS_PSK "Include TLS-PSK support (requires WITH_TLS)?" OFF)
+    option(WITH_EC "Include Elliptic Curve support (requires WITH_TLS)?" OFF)
+    option(WITH_THREADING "Include client library threading support?" OFF)
 
-ExternalProject_Add(scs_sdk
-    URL http://download.eurotrucksimulator2.com/scs_sdk_1_11.zip
-    PREFIX ${CMAKE_BINARY_DIR}/external/scs_sdk
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    LOG_DOWNLOAD ON
+    FetchContent_Declare(
+            mosquitto
+            GIT_REPOSITORY https://github.com/eclipse/mosquitto.git
+            GIT_TAG v2.0.4
     )
-include_directories(
-    ${CMAKE_BINARY_DIR}/external/scs_sdk/src/scs_sdk/include/
-)
+    FetchContent_MakeAvailable(mosquitto)
+endif ()
 
-ExternalProject_Add(json
-    PREFIX ${CMAKE_BINARY_DIR}/external/json
-    URL https://github.com/nlohmann/json/releases/download/v3.4.0/json.hpp
-    DOWNLOAD_NO_EXTRACT 1
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-)
-include_directories(${CMAKE_BINARY_DIR}/external/json/src)
+FetchContent_Declare(scs_sdk_dl
+        URL http://download.eurotrucksimulator2.com/scs_sdk_1_11.zip
+        )
+FetchContent_GetProperties(scs_sdk_dl)
+message(STATUS "1 scs_sdk_dl_POPULATED: ${scs_sdk_dl_POPULATED} scs_sdk_dl_SOURCE_DIR: ${scs_sdk_dl_SOURCE_DIR} scs_sdk_dl_BINARY_DIR: ${scs_sdk_dl_BINARY_DIR}  ")
+
+if (NOT scs_sdk_dl_POPULATED)
+    FetchContent_Populate(scs_sdk_dl)
+endif ()
+message(STATUS "2 scs_sdk_dl_POPULATED: ${scs_sdk_dl_POPULATED} scs_sdk_dl_SOURCE_DIR: ${scs_sdk_dl_SOURCE_DIR} scs_sdk_dl_BINARY_DIR: ${scs_sdk_dl_BINARY_DIR}  ")
+
+add_library(scs_sdk INTERFACE)
+target_include_directories(scs_sdk
+        INTERFACE "${scs_sdk_dl_SOURCE_DIR}/include")
+
+FetchContent_Declare(json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG v3.9.1)
+if (NOT json_POPULATED)
+    FetchContent_Populate(json)
+endif ()
+add_library(nlohmann_json INTERFACE)
+target_include_directories(nlohmann_json
+        INTERFACE "${json_SOURCE_DIR}/single_include")
 
 add_library(ets2telemery MODULE
-	src/mqttClient.hpp
-	src/mqttClient.cxx
-    src/telemetry_state.hpp
-    src/telemetry_state.cpp
-	src/ets2client.cxx
-	src/scslog.hpp
-    src/simulation_timestamp.hpp
-    src/simulation_timestamp.cpp
-)
-
-add_dependencies(ets2telemery scs_sdk json)
-target_link_libraries(ets2telemery 
-    PUBLIC ${MOSQUITTOPP_LIBRARY})
+        src/ets2telemery.def
+        src/mqttClient.hpp
+        src/mqttClient.cxx
+        src/telemetry_state.hpp
+        src/telemetry_state.cpp
+        src/ets2client.cxx
+        src/scslog.hpp
+        src/simulation_timestamp.hpp
+        src/simulation_timestamp.cpp
+        )
 
 
+target_link_libraries(ets2telemery
+        PUBLIC mosquitto
+        PUBLIC mosquittopp
+        PRIVATE scs_sdk
+        PRIVATE nlohmann_json
+        )
 
-add_executable(ets2clienttest
-    src/mqttClient.hpp
-    src/mqttClient.cxx
-    src/telemetry_state.hpp
-    src/telemetry_state.cpp
-    src/ets2client.cxx
-    src/simulation_timestamp.hpp
-    src/simulation_timestamp.cpp
+target_include_directories(ets2telemery
+        PRIVATE ${mosquitto_SOURCE_DIR}/lib
+        PRIVATE ${mosquitto_SOURCE_DIR}/lib/cpp
+        PRIVATE ${mosquitto_SOURCE_DIR}/include
+        )
 
-    test/ets2clienttest.cxx
-    test/gmock_catch_interceptor.hpp
-    test/main.cpp
-)
-target_link_libraries(ets2clienttest 
-    PUBLIC
-     ${MOSQUITTOPP_LIBRARY}
-     gmock
-)
-set_property(TARGET ets2clienttest 
-    PROPERTY 
-    CXX_STANDARD 14
-)
-target_include_directories(ets2clienttest
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-add_dependencies(ets2clienttest catch2 json scs_sdk)
-add_test(NAME ets2client
-      COMMAND ets2clienttest --reporter xml --out ets2clienttest.xml
-)
+add_library(hello_ets2 MODULE
+        src/hello_ets2.cpp
+        src/hello_ets2.def
+        )
+target_link_libraries(hello_ets2
+        PRIVATE scs_sdk)
 
-find_package(Doxygen
-             REQUIRED dot
-             OPTIONAL_COMPONENTS mscgen dia)
+add_library(telemetry MODULE
+        scs_examples/telemetry.cpp
+        scs_examples/telemetry.def
+        )
+target_link_libraries(telemetry
+        PRIVATE scs_sdk)
 
-doxygen_add_docs(
-    doxygen
-    ${PROJECT_SOURCE_DIR} ${EXTERNAL_SCS_SDK_INSTALL_LOCATION}/src/scs_sdk
-    "Build Documentation"
-)
-add_dependencies(doxygen scs_sdk)
-add_custom_target(doc ALL
-    DEPENDS doxygen
-)
+if (NOT WIN32)
+    add_executable(ets2clienttest
+            src/mqttClient.hpp
+            src/mqttClient.cxx
+            src/telemetry_state.hpp
+            src/telemetry_state.cpp
+            src/ets2client.cxx
+            src/simulation_timestamp.hpp
+            src/simulation_timestamp.cpp
+
+            test/ets2clienttest.cxx
+            test/gmock_catch_interceptor.hpp
+            test/main.cpp
+            )
+    target_link_libraries(ets2clienttest
+            PUBLIC mosquitto
+            PUBLIC mosquittopp
+            PUBLIC gmock
+            PUBLIC Catch2::Catch2
+            PRIVATE scs_sdk
+            PRIVATE nlohmann_json
+            )
+    set_property(TARGET ets2clienttest
+            PROPERTY
+            CXX_STANDARD 14
+            )
+    target_include_directories(ets2clienttest
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+            PRIVATE ${mosquitto_SOURCE_DIR}/lib
+            PRIVATE ${mosquitto_SOURCE_DIR}/lib/cpp
+            PRIVATE ${mosquitto_SOURCE_DIR}/include
+            )
+    add_test(NAME ets2client
+            COMMAND ets2clienttest --reporter xml --out ets2clienttest.xml
+            )
+endif ()
+
+#find_package(Doxygen
+#             REQUIRED dot
+#             OPTIONAL_COMPONENTS mscgen dia)
+#
+#doxygen_add_docs(
+#    doxygen
+#    ${PROJECT_SOURCE_DIR} ${EXTERNAL_SCS_SDK_INSTALL_LOCATION}/src/scs_sdk
+#    "Build Documentation"
+#)
+#add_dependencies(doxygen scs_sdk)
+#add_custom_target(doc ALL
+#    DEPENDS doxygen
+#)

@@ -8,7 +8,9 @@
 #endif
 
 #include <cstdio>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <mosquittopp.h>
 #include <iostream>
 #include <string>
@@ -17,7 +19,7 @@
 #include <cstring>
 #include <cassert>
 
-#include "json.hpp"
+#include "nlohmann/json.hpp"
 
 #include "scssdk_telemetry.h"
 #include "eurotrucks2/scssdk_eut2.h"
